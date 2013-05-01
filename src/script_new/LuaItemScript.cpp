@@ -34,8 +34,8 @@ LuaItemScript::LuaItemScript(const std::string &code, const std::string &codenam
 
 void LuaItemScript::UseItem(Character* user, const ScriptItem& sourceItem, unsigned char ltastate) {
         lua_getglobal(_luaState, "UseItem");
-	CharacterWrapper::push(_luaState, user);
-	ScriptItemWrapper::push(_luaState, sourceItem);
+	CharacterWrapper::instance()->push(_luaState, *user);
+	ScriptItemWrapper::instance()->push(_luaState, sourceItem);
 	lua_pushnumber(_luaState, ltastate);
         int rc = lua_pcall(_luaState, 3, 0, 0);
 	if (rc != 0) {
@@ -55,8 +55,8 @@ bool LuaItemScript::actionDisturbed(Character *performer, Character *disturber) 
 
 void LuaItemScript::LookAtItem(Character *who, const ScriptItem &item) {
         lua_getglobal(_luaState, "LookAtItem");
-	CharacterWrapper::push(_luaState, who);
-	ScriptItemWrapper::push(_luaState, item);
+	CharacterWrapper::instance()->push(_luaState, *who);
+	ScriptItemWrapper::instance()->push(_luaState, item);
         int rc = lua_pcall(_luaState, 2, 0, 0);
 	if (rc != 0) {
 		logCurrentError();

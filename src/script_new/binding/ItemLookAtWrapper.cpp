@@ -28,42 +28,24 @@
 
 #include "script/binding/helper.hpp"
 
-#define CLASS_TABLE_NAME "game.character"
+ItemLookAtWrapper* ItemLookAtWrapper::_instance;
+
+ItemLookAtWrapper::ItemLookAtWrapper() : Binder("ItemLookAt") {
+}
+
+void ItemLookAtWrapper::setup_functions() {
+	_functions.accessors["name"] = &getName;
+	_functions.new_index["name"] = &setName;
+	_functions.constructor = &create;
+}
 
 int ItemLookAtWrapper::create(struct lua_State* state) {
-	void* ptr = lua_newuserdata(state, sizeof(ItemLookAt));
-	new(ptr) ItemLookAt();
-	luaL_getmetatable(state, CLASS_TABLE_NAME);
-	lua_setmetatable(state, -2);
-
+	instance()->push(state, *(new ItemLookAt()));
 	return 1;
 }
 
-void ItemLookAtWrapper::Register(struct lua_State* state) {
-	luaH_register_class(state, CLASS_TABLE_NAME);
-
-	luaH_getmethods(state, CLASS_TABLE_NAME);
-	fillGetFunctions(state);
-	lua_pop(state, 1);
-
-	luaH_setmethods(state, CLASS_TABLE_NAME);
-	fillSetFunctions(state);
-	lua_pop(state, 1);
-
-	lua_pushcfunction(state, create);
-	lua_setglobal(state, "ItemLookAt");
-}
-
-void ItemLookAtWrapper::fillGetFunctions(struct lua_State* state) {
-	luaH_register_function(state, "name", getName);
-}
-
-void ItemLookAtWrapper::fillSetFunctions(struct lua_State* state) {
-	luaH_register_function(state, "name", setName);
-}
-
 int ItemLookAtWrapper::getName(struct lua_State* state) {
-	ItemLookAt* itemlookat = (ItemLookAt*)luaL_checkudata(state, 1, CLASS_TABLE_NAME);
+	ItemLookAt* itemlookat = instance()->get(state, 1);
 	if (lua_gettop(state) > 1) {
 		// TODO log error
 		throw ScriptException("wrong number of arguments");
@@ -77,7 +59,7 @@ int ItemLookAtWrapper::getName(struct lua_State* state) {
 }
 
 int ItemLookAtWrapper::setName(struct lua_State* state) {
-	ItemLookAt* itemlookat = (ItemLookAt*)luaL_checkudata(state, 1, CLASS_TABLE_NAME);
+	ItemLookAt* itemlookat = instance()->get(state, 1);
 	if (lua_gettop(state) != 2) {
 		// TODO log error
 		throw ScriptException("wrong number of arguments");
@@ -89,9 +71,4 @@ int ItemLookAtWrapper::setName(struct lua_State* state) {
 	lua_pop(state, 2);
 
 	return 0;
-}
-
-ItemLookAt ItemLookAtWrapper::get(struct lua_State* state, int index) {
-	ItemLookAt* itemlookat = (ItemLookAt*)luaL_checkudata(state, index, CLASS_TABLE_NAME);
-	return *itemlookat;
 }

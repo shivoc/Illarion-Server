@@ -21,16 +21,26 @@
 #ifndef __LUA_BINDING_CONTAINER
 #define __LUA_BINDING_CONTAINER
 
+#include "Binder.hpp"
+
 class Container;
 
-class ContainerWrapper {
+class ContainerWrapper : public Binder<Container> {
 	public:
-		static void Register(struct lua_State* state);
-		static void push(struct lua_State* state, Container* container);
-		static Container* get(struct lua_State* state, int index);
+		ContainerWrapper();
 
 		static int countItem(struct lua_State* state);
 		static int eraseItem(struct lua_State* state);
+
+		static ContainerWrapper* instance() {
+			if (_instance == nullptr)
+				_instance = new ContainerWrapper();
+			return _instance;
+		}
+
+	protected:
+		static ContainerWrapper* _instance;
+		virtual void setup_functions() override;
 };
 
 #endif

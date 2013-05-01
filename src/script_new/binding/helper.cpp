@@ -85,6 +85,10 @@ void luaH_register_class(struct lua_State* state, const char* tablename, const c
 
 	lua_settable(state, -3);
 
+
+//	luaL_getmetatable(state, tablename);
+//	lua_setmetatable(state, -2);
+
 	lua_pop(state, 1);
 }
 

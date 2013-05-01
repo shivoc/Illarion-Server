@@ -9,6 +9,6 @@ libscriptbinding_la_SOURCES = LuaScript.cpp LuaItemScript.cpp \
 			      binding/CharacterWrapper.cpp binding/WorldWrapper.cpp \
 			      binding/PlayerWrapper.cpp binding/ItemLookAtWrapper.cpp \
 			      binding/ScriptItemWrapper.cpp binding/ItemWrapper.cpp \
-			      binding/ContainerWrapper.cpp
+			      binding/ContainerWrapper.cpp binding/BindHelper.cpp
 
 noinst_HEADERS = LuaScript.hpp

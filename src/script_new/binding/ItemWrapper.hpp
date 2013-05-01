@@ -21,17 +21,29 @@
 #ifndef __LUA_BINDING_ITEM
 #define __LUA_BINDING_ITEM
 
+#include "Binder.hpp"
+
 class Item;
 struct lua_State;
 
-class ItemWrapper {
+// TODO move to IdBinder
+class ItemWrapper : public Binder<Item> {
 	public:
-		static void push(struct lua_State* state, const Item& item);
-		static void Register(struct lua_State* state);
-	private:
-		static void push_values(struct lua_State* state, const Item& item);
+		ItemWrapper();
 
-	friend class ScriptItemWrapper;
+		static int getId(lua_State* state);
+		static int setId(lua_State* state);
+
+		static ItemWrapper* instance() {
+			if (_instance == nullptr)
+				_instance = new ItemWrapper();
+			return _instance;
+		}
+
+	protected:
+		static ItemWrapper* _instance;
+		virtual void setup_functions() override;
+
 };
 
 #endif

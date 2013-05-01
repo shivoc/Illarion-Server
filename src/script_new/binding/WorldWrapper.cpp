@@ -60,9 +60,9 @@ int WorldWrapper::getItemName(struct lua_State* state) {
 }
 
 int WorldWrapper::itemInform(struct lua_State* state) {
-	Character* character = CharacterWrapper::get(state, -3);
-	ScriptItem scriptitem = ScriptItemWrapper::get(state, -2);
-	ItemLookAt itemlookat = ItemLookAtWrapper::get(state, -1);
+	Character* character = CharacterWrapper::instance()->get(state, -3);
+	ScriptItem scriptitem = *ScriptItemWrapper::instance()->get(state, -2);
+	ItemLookAt itemlookat = *ItemLookAtWrapper::instance()->get(state, -1);
 
 	World::get()->itemInform(character, scriptitem, itemlookat);
 

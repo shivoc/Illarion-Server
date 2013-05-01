@@ -26,8 +26,7 @@
 
 #include "script/binding/helper.hpp"
 
-#define CLASS_TABLE_NAME "game.item"
-
+#if 0
 void ItemWrapper::push(struct lua_State* state, const Item& item) {
 	lua_newtable(state);
 	luaL_getmetatable(state, CLASS_TABLE_NAME);
@@ -43,3 +42,30 @@ void ItemWrapper::Register(struct lua_State* state) {
 void ItemWrapper::push_values(struct lua_State* state, const Item& item) {
 	luaH_pushint(state, "id", item.getId());
 }
+#endif
+
+ItemWrapper* ItemWrapper::_instance = nullptr;
+
+ItemWrapper::ItemWrapper() : Binder("Item") {
+}
+
+void ItemWrapper::setup_functions() {
+	_functions.accessors["id"] = &getId;
+	_functions.new_index["id"] = &setId;
+}
+
+int ItemWrapper::getId(lua_State* state) {
+	auto itemptr = instance()->get(state, 1);
+	lua_pop(state, 1);
+	lua_pushnumber(state, itemptr->getId());
+	return 1;
+}
+
+int ItemWrapper::setId(lua_State* state) {
+	auto itemptr = instance()->get(state, 1);
+	Item::id_type value = luaL_checkint(state, 2);
+	lua_pop(state, 2);
+	itemptr->setId(value);
+	return 0;
+}
+

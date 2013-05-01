@@ -32,27 +32,26 @@
 
 #define CLASS_TABLE_NAME "game.character"
 
-void CharacterWrapper::push(struct lua_State* state, Character* character) {
-	TYPE_OF_CHARACTER_ID* charid = (TYPE_OF_CHARACTER_ID*)lua_newuserdata(state, sizeof(TYPE_OF_CHARACTER_ID*));
-	*charid = character->getId();
-	luaL_getmetatable(state, CLASS_TABLE_NAME);
-	lua_setmetatable(state, -2);
-
-	
+Character* CharIdBinder::getById(uint64_t id) {
+	return World::get()->findCharacter(id);
 }
 
-void CharacterWrapper::Register(struct lua_State* state) {
-	luaH_register_class(state, CLASS_TABLE_NAME);
-	luaH_getmethods(state, CLASS_TABLE_NAME);
+uint64_t CharIdBinder::getId(Character const* character) {
+	return character->getId();
+}
 
-	luaH_register_function(state, "inform", inform);
-	luaH_register_function(state, "getBackPack", getBackPack);
+CharacterWrapper* CharacterWrapper::_instance = nullptr;
 
-	lua_pop(state, 1);
+void CharacterWrapper::setup_functions() {
+	_functions.mem_fun["inform"] = &inform;
+	_functions.mem_fun["getBackPack"] = &getBackPack;
+}
+
+CharacterWrapper::CharacterWrapper() : Binder("Character") {
 }
 
 int CharacterWrapper::inform(struct lua_State* state) {
-	TYPE_OF_CHARACTER_ID* charid = (TYPE_OF_CHARACTER_ID*)luaL_checkudata(state, 1, CLASS_TABLE_NAME);
+	Character* character = instance()->get(state, 1);
 
 	std::string arg1 = luaL_checkstring(state, 2);
 	std::string arg2;
@@ -76,7 +75,6 @@ int CharacterWrapper::inform(struct lua_State* state) {
 		throw ScriptException("error in arguments");
 	}
 
-	Character* character = World::get()->findCharacter(*charid);
 	if (character != nullptr) {
 		if (arg2.empty()) {
 			character->inform(arg1, informtype);
@@ -94,9 +92,8 @@ int CharacterWrapper::inform(struct lua_State* state) {
 }
 
 int CharacterWrapper::getBackPack(struct lua_State* state) {
-	TYPE_OF_CHARACTER_ID* charid = (TYPE_OF_CHARACTER_ID*)luaL_checkudata(state, 1, CLASS_TABLE_NAME);
+	Character* character = instance()->get(state, 1);
 	
-	Character* character = World::get()->findCharacter(*charid);
 	if (character == nullptr) {
 		// TODO log error
 		throw ScriptException("char not found");
@@ -106,18 +103,8 @@ int CharacterWrapper::getBackPack(struct lua_State* state) {
 		return luaL_argerror(state, 2, "invalid extra arguments");
 	}
 
-	ContainerWrapper::push(state, character->GetBackPack());
+	ContainerWrapper::instance()->push(state, *(character->GetBackPack()));
 
 	return 1;
-}
-
-Character* CharacterWrapper::get(struct lua_State* state, int index) {
-	TYPE_OF_CHARACTER_ID* charid = (TYPE_OF_CHARACTER_ID*)luaL_checkudata(state, index, CLASS_TABLE_NAME);
-	Character* character = World::get()->findCharacter(*charid);
-	if (character != nullptr)
-		return character;
-
-	// TODO log error
-	throw ScriptException("char not found");
 }
 

@@ -27,8 +27,14 @@
 #include "script/binding/helper.hpp"
 #include "script/binding/ItemWrapper.hpp"
 
-#define CLASS_TABLE_NAME "game.scriptitem"
-#define CLASS_BASE_TABLE_NAME "game.item"
+ScriptItemWrapper* ScriptItemWrapper::_instance = nullptr;
+
+ScriptItemWrapper::ScriptItemWrapper() : Binder("ScriptItem") {
+}
+
+void ScriptItemWrapper::setup_functions() {
+}
+
 /*
         luabind::class_<ScriptItem,Item>("scriptItem")
         .def(luabind::constructor<>())
@@ -39,6 +45,7 @@
         .def_readonly("inside", &ScriptItem::inside)
 */
 
+#if 0
 void ScriptItemWrapper::push(struct lua_State* state, const ScriptItem& item) {
 	lua_newtable(state);
 	luaL_getmetatable(state, CLASS_TABLE_NAME);
@@ -77,4 +84,4 @@ ScriptItem ScriptItemWrapper::get(struct lua_State* state, int index) {
 
 	return item;
 }
-
+#endif

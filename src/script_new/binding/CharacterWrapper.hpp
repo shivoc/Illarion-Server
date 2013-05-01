@@ -21,18 +21,31 @@
 #ifndef __LUA_BINDING_CHARACTER
 #define __LUA_BINDING_CHARACTER
 
+#include "Binder.hpp"
+
 class Character;
 struct lua_State;
 
-class CharacterWrapper {
+class CharIdBinder : public IdBinder<Character> {
+	protected:
+		virtual Character* getById(uint64_t id) override;
+		virtual uint64_t getId(Character const* character) override;
+};
+
+class CharacterWrapper : public Binder<Character, CharIdBinder> {
 	public:
-		static void push(struct lua_State* state, Character* character);
-		static Character* get(struct lua_State* state, int index);
-
-		static void Register(struct lua_State* state);
-
+		CharacterWrapper();
 		static int inform(struct lua_State* state);
 		static int getBackPack(struct lua_State* state);
+		static CharacterWrapper* instance() {
+			if (_instance == nullptr)
+				_instance = new CharacterWrapper();
+			return _instance;
+		}
+
+	protected:
+		static CharacterWrapper* _instance;
+		virtual void setup_functions() override;
 };
 
 #endif

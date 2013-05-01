@@ -21,15 +21,32 @@
 #ifndef __LUA_BINDING_PLAYER
 #define __LUA_BINDING_PLAYER
 
+#include "Binder.hpp"
+#include "CharacterWrapper.hpp"
+
 class Player;
 struct lua_State;
 
-class PlayerWrapper {
-	public:
-		static void push(struct lua_State* state, Player* character);
-		static void Register(struct lua_State* state);
+class PlayerIdBinder : public IdBinder<Player> {
+	protected:
+		virtual Player* getById(uint64_t id) override;
+		virtual uint64_t getId(Player const* character) override;
+};
 
+class PlayerWrapper : public Binder<Player, PlayerIdBinder, CharacterWrapper> {
+	public:
+		PlayerWrapper();
 		static int inform(struct lua_State* state);
+
+		static PlayerWrapper* instance() {
+			if (_instance == nullptr)
+				_instance = new PlayerWrapper();
+			return _instance;
+		}
+
+	protected:
+		static PlayerWrapper* _instance;
+		virtual void setup_functions() override;
 };
 
 #endif

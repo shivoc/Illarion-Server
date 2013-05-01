@@ -29,43 +29,21 @@
 
 #include "script/binding/helper.hpp"
 
-#define CLASS_TABLE_NAME "game.player"
-#define CLASS_STATIC_TABLE_NAME "game.player.static"
-#define CLASS_STATIC_TABLE_INSTANCE "game.player.static.instance"
-#define CLASS_BASE_TABLE_NAME "game.character"
-
-void PlayerWrapper::push(struct lua_State* state, Player* character) {
-	TYPE_OF_CHARACTER_ID* charid = (TYPE_OF_CHARACTER_ID*)lua_newuserdata(state, sizeof(TYPE_OF_CHARACTER_ID*));
-	*charid = character->getId();
-	luaL_getmetatable(state, CLASS_TABLE_NAME);
-	lua_setmetatable(state, -2);
+Player* PlayerIdBinder::getById(uint64_t id) {
+	return dynamic_cast<Player*>(World::get()->findCharacter(id));
 }
 
-int readonly_table(struct lua_State* state) {
-        Logger::error(LogFacility::Script) << "tried to modify read-only table" << Log::end;
-	return 0;
+uint64_t PlayerIdBinder::getId(Player const* character) {
+	return character->getId();
 }
 
-void PlayerWrapper::Register(struct lua_State* state) {
-	luaH_register_class(state, CLASS_TABLE_NAME, CLASS_BASE_TABLE_NAME);
+PlayerWrapper* PlayerWrapper::_instance = nullptr;
 
-	luaL_newmetatable(state, CLASS_STATIC_TABLE_INSTANCE);
-	lua_pushstring(state, "__index");
+PlayerWrapper::PlayerWrapper() : Binder("Player") {
+}
 
-	luaL_newmetatable(state, CLASS_STATIC_TABLE_NAME);
-
-	luaH_pushint(state, "english", static_cast<int>(Language::english));
-	luaH_pushint(state, "german", static_cast<int>(Language::german));
-
-	lua_settable(state, -3);
-
-	lua_pushstring(state, "__newindex");
-	lua_getglobal(state, "readonly");
-	lua_settable(state, -3);
-
-	luaL_getmetatable(state, CLASS_STATIC_TABLE_INSTANCE);
-	lua_setmetatable(state, -2);
-
-	lua_setglobal(state, "Player");
+void PlayerWrapper::setup_functions() {
+	_functions.static_data["english"] = ValueBinder<static_cast<int>(Language::english)>;
+	_functions.static_data["german"] = ValueBinder<static_cast<int>(Language::german)>;
 }
 

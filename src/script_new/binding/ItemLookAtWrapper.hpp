@@ -21,21 +21,35 @@
 #ifndef __LUA_BINDING_ITEMLOOKAT
 #define __LUA_BINDING_ITEMLOOKAT
 
+#include "Binder.hpp"
+
 class ItemLookAt;
 struct lua_State;
 
-class ItemLookAtWrapper {
+class ItemLookAtWrapper : public Binder<ItemLookAt> {
 	public:
-		static void Register(struct lua_State* state);
-		static ItemLookAt get(struct lua_State* state, int index);
+		ItemLookAtWrapper();
+
+		//static void Register(struct lua_State* state);
+		//static ItemLookAt get(struct lua_State* state, int index);
 
 		static int create(struct lua_State* state);
 
-		static void fillSetFunctions(struct lua_State* state);
-		static void fillGetFunctions(struct lua_State* state);
+		//static void fillSetFunctions(struct lua_State* state);
+		//static void fillGetFunctions(struct lua_State* state);
 
 		static int getName(struct lua_State* state);
 		static int setName(struct lua_State* state);
+
+		static ItemLookAtWrapper* instance() {
+			if (_instance == nullptr)
+				_instance = new ItemLookAtWrapper();
+			return _instance;
+		}
+
+	protected:
+		static ItemLookAtWrapper* _instance;
+		virtual void setup_functions() override;
 };
 
 #endif

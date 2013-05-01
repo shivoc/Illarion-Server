@@ -28,29 +28,14 @@
 
 #include "script/binding/helper.hpp"
 
-#define CLASS_TABLE_NAME "game.container"
+ContainerWrapper* ContainerWrapper::_instance = nullptr;
 
-void ContainerWrapper::Register(struct lua_State* state) {
-	luaH_register_class(state, CLASS_TABLE_NAME);
-
-	luaH_getmethods(state, CLASS_TABLE_NAME);
-
-	luaH_register_function(state, "countItem", countItem);
-	luaH_register_function(state, "eraseItem", eraseItem);
-
-	lua_pop(state, 1);
+ContainerWrapper::ContainerWrapper() : Binder("Container") {
 }
 
-void ContainerWrapper::push(struct lua_State* state, Container* container) {
-	Container** containerp = (Container**)lua_newuserdata(state, sizeof(Container**));
-	*containerp = container;
-	luaL_getmetatable(state, CLASS_TABLE_NAME);
-	lua_setmetatable(state, -2);
-}
-
-Container* ContainerWrapper::get(struct lua_State* state, int index) {
-	Container** containerp = (Container**)luaL_checkudata(state, index, CLASS_TABLE_NAME);
-	return *containerp;
+void ContainerWrapper::setup_functions() {
+	_functions.mem_fun["countItem"] = &countItem;
+	_functions.mem_fun["eraseItem"] = &eraseItem;
 }
 
 int ContainerWrapper::countItem(struct lua_State* state) {
@@ -61,7 +46,7 @@ int ContainerWrapper::countItem(struct lua_State* state) {
 		throw ScriptException("wrong number or arguments");
 	}
 
-	Container** containerp = (Container**)luaL_checkudata(state, 1, CLASS_TABLE_NAME);
+	Container* containerp = instance()->get(state, 1);
 	
 	Item::id_type itemid = luaL_checknumber(state, 2);
 
@@ -72,9 +57,9 @@ int ContainerWrapper::countItem(struct lua_State* state) {
 
 	int result;
 	if (numargs == 2) {
-		result = (*containerp)->countItem(itemid);
+		result = containerp->countItem(itemid);
 	} else {
-		result = (*containerp)->countItem(itemid, data.get());
+		result = containerp->countItem(itemid, data.get());
 	}
 
 	lua_pop(state, numargs);
@@ -92,7 +77,7 @@ int ContainerWrapper::eraseItem(struct lua_State* state) {
 		throw ScriptException("wrong number or arguments");
 	}
 
-	Container** containerp = (Container**)luaL_checkudata(state, 1, CLASS_TABLE_NAME);
+	Container* containerp = instance()->get(state, 1);
 	
 	Item::id_type itemid = luaL_checknumber(state, 2);
 	Item::number_type number = luaL_checknumber(state, 3);
@@ -104,9 +89,9 @@ int ContainerWrapper::eraseItem(struct lua_State* state) {
 
 	int result;
 	if (numargs == 3) {
-		result = (*containerp)->eraseItem(itemid, number);
+		result = containerp->eraseItem(itemid, number);
 	} else {
-		result = (*containerp)->eraseItem(itemid, number, data.get());
+		result = containerp->eraseItem(itemid, number, data.get());
 	}
 
 	lua_pop(state, numargs);

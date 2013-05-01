@@ -76,13 +76,13 @@ void LuaScript::init_state() {
 		throw ScriptException("Error in loading script: " + luarc_tostring(rc));
 	}
 
-	CharacterWrapper::Register(_luaState);
-	PlayerWrapper::Register(_luaState);
+	CharacterWrapper::instance()->Register(_luaState);
+	PlayerWrapper::instance()->Register(_luaState);
 	WorldWrapper::Register(_luaState);
-	ItemWrapper::Register(_luaState);
-	ScriptItemWrapper::Register(_luaState);
-	ItemLookAtWrapper::Register(_luaState);
-	ContainerWrapper::Register(_luaState);
+	ItemWrapper::instance()->Register(_luaState);
+	ScriptItemWrapper::instance()->Register(_luaState);
+	ItemLookAtWrapper::instance()->Register(_luaState);
+	ContainerWrapper::instance()->Register(_luaState);
 }
 
 void LuaScript::logCurrentError() {

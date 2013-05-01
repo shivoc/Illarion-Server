@@ -21,18 +21,25 @@
 #ifndef __LUA_BINDING_SCRIPTITEM
 #define __LUA_BINDING_SCRIPTITEM
 
+#include "Binder.hpp"
+#include "ItemWrapper.hpp"
+
 class ScriptItem;
 struct lua_State;
 
-class ScriptItemWrapper {
+class ScriptItemWrapper : public Binder<ScriptItem, PointerBinder<ScriptItem>, ItemWrapper> {
 	public:
-		static void push(struct lua_State* state, const ScriptItem& item);
-		static void Register(struct lua_State* state);
-		static ScriptItem get(struct lua_State* state, int index);
+		ScriptItemWrapper();
 
-	private:
-		static void push_values(struct lua_State* state, const ScriptItem& item);
-		static void get_values(struct lua_State* state, ScriptItem& item);
+		static ScriptItemWrapper* instance() {
+			if (_instance == nullptr)
+				_instance = new ScriptItemWrapper();
+			return _instance;
+		}
+
+	protected:
+		static ScriptItemWrapper* _instance;
+		virtual void setup_functions() override;
 };
 
 #endif
