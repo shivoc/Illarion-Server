@@ -78,7 +78,7 @@ void LuaScript::init_state() {
 
 	CharacterWrapper::instance()->Register(_luaState);
 	PlayerWrapper::instance()->Register(_luaState);
-	WorldWrapper::Register(_luaState);
+	WorldWrapper::instance()->Register(_luaState);
 	ItemWrapper::instance()->Register(_luaState);
 	ScriptItemWrapper::instance()->Register(_luaState);
 	ItemLookAtWrapper::instance()->Register(_luaState);

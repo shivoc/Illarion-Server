@@ -100,19 +100,28 @@ int BindHelper::resolve_static(lua_State* state, const BindFunctions& functions)
 	const BindFunctions* ptr = &functions;
 
 	do {
-		target_fun = get_function(ptr->static_data, method);
+		target_fun = get_function(ptr->static_methods, method);
 		ptr = ptr->parent;
 	} while (target_fun == nullptr && ptr != nullptr);
 
 	if (target_fun != nullptr) {
-		return target_fun(state);
+		lua_pushcfunction(state, target_fun);
 	} else {
-		Logger::error(LogFacility::Script) << "function " << method << " not found" << Log::end;
+		ptr = &functions;
+		do {
+			target_fun = get_function(ptr->static_data, method);
+			ptr = ptr->parent;
+		} while (target_fun == nullptr && ptr != nullptr);
+
+		if (target_fun != nullptr) {
+			return target_fun(state);
+		} else {
+			Logger::error(LogFacility::Script) << "function " << method << " not found" << Log::end;
+			lua_pushnil(state);
+		}
 	}
 
-	lua_pop(state, lua_gettop(state));
-
-	return 0;
+	return 1;
 }
 
 void BindHelper::Register(lua_State* state, const std::string& classname, lua_function index, lua_function newindex, lua_function new_fun, lua_function gc_fun) {

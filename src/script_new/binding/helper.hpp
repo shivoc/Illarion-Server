@@ -24,21 +24,11 @@
 #include "Character.hpp"
 
 #include <memory>
-#include "globals.hpp"
 
 struct lua_State;
 
-typedef int(*lua_function)(struct lua_State*);
-
 // returns Character::informScriptMediumPriority if informtype is invalid
 Character::informType check_informtype(int informtype);
-
-void luaH_register_struct(struct lua_State* state, const char* tablename, const char* basename = nullptr);
-void luaH_register_class(struct lua_State* state, const char* tablename, const char* basename = nullptr);
-void luaH_getmethods(struct lua_State* state, const char* tablename);
-void luaH_setmethods(struct lua_State* state, const char* tablename);
-void luaH_register_function(struct lua_State* state, const char* name, lua_function func);
-void luaH_pushint(struct lua_State *l, const std::string &key, const int &value);
 
 // needs a positive index to work
 std::shared_ptr<script_data_exchangemap> luaH_convert_to_map(struct lua_State* state, int index);

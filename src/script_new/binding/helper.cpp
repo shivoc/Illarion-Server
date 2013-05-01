@@ -24,9 +24,6 @@
 
 #include "script/LuaScript.hpp"
 
-#define METHODS ".methods"
-#define NEWMETHODS ".newmethods"
-
 Character::informType check_informtype(int informtype) {
 	Character::informType type = static_cast<Character::informType>(informtype);
 	// no default switch to ensure compile error on change to enum
@@ -41,79 +38,6 @@ Character::informType check_informtype(int informtype) {
 	}
 
 	return Character::informScriptMediumPriority;
-}
-
-void luaH_register_struct(struct lua_State* state, const char* tablename, const char* basename) {
-	// we only handle copy by value, no methods struct here...
-	// TODO we might need to change this if we want to inherit methods, have to find a way to handle getter/setter of base classes without preventing setting table values
-	luaL_newmetatable(state, tablename);
-	lua_pop(state, 1);
-}
-
-void luaH_register_class(struct lua_State* state, const char* tablename, const char* basename) {
-	// TODO check if getter/setter of base class are correctly used
-	luaL_newmetatable(state, tablename);
-
-	lua_pushstring(state, "__index");
-
-	// create new metatable for class methods
-	std::string methods_table = tablename;
-	methods_table += METHODS;
-	luaL_newmetatable(state, methods_table.c_str());
-
-	if (basename != nullptr) {
-		// set item class table as index for inheritance
-		lua_pushstring(state, "__index");
-		luaL_getmetatable(state, basename);
-		lua_settable(state, -3);
-	}
-
-	lua_settable(state, -3);  /* metatable.__index = metatable */
-
-	// create new metatable for write methods
-	std::string newmethods_table = tablename;
-	newmethods_table += NEWMETHODS;
-	lua_pushstring(state, "__newindex");
-	luaL_newmetatable(state, newmethods_table.c_str());
-
-	if (basename != nullptr) {
-		// set item class table as index for inheritance
-		lua_pushstring(state, "__newindex");
-		luaL_getmetatable(state, basename);
-		lua_settable(state, -3);
-	}
-
-	lua_settable(state, -3);
-
-
-//	luaL_getmetatable(state, tablename);
-//	lua_setmetatable(state, -2);
-
-	lua_pop(state, 1);
-}
-
-void luaH_getmethods(struct lua_State* state, const char* tablename) {
-	std::string methods_table = tablename;
-	methods_table += METHODS;
-	luaL_getmetatable(state, methods_table.c_str());
-}
-
-void luaH_setmethods(struct lua_State* state, const char* tablename) {
-	std::string newmethods_table = tablename;
-	newmethods_table += NEWMETHODS;
-	luaL_getmetatable(state, newmethods_table.c_str());
-}
-
-void luaH_register_function(struct lua_State* state, const char* name, lua_function func) {
-	lua_pushstring(state, name);
-	lua_pushcfunction(state, func);
-	lua_settable(state, -3);
-}
-
-void luaH_pushint(lua_State *l, const std::string &key, const int &value) {
-    lua_pushstring(l, key.c_str());
-    lua_pushnumber(l, value);
-    lua_settable(l, -3);
 }
 
 std::shared_ptr<script_data_exchangemap> luaH_convert_to_map(struct lua_State* state, int index) {

@@ -35,6 +35,7 @@ struct BindFunctions {
 	function_map accessors;
 	lua_function constructor = nullptr;
 	function_map static_data;
+	function_map static_methods;
 	lua_function gc = nullptr;
 
 	BindFunctions* parent = nullptr;

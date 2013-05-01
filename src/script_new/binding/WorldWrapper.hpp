@@ -21,16 +21,31 @@
 #ifndef __LUA_BINDING_WORLD
 #define __LUA_BINDING_WORLD
 
+#include "Binder.hpp"
+
 class World;
 struct lua_State;
 
-class WorldWrapper {
+class WorldBinder {
 	public:
-		static void push(struct lua_State* state, World* world);
-		static void Register(struct lua_State* state);
+		void push(lua_State* state, const World& target, const std::string& classname);
+		World* get(lua_State* state, int index, const std::string& classname);
+};
 
+class WorldWrapper : public Binder<World, WorldBinder> {
+	public:
+		WorldWrapper();
 		static int getItemName(struct lua_State* state);
 		static int itemInform(struct lua_State* state);
+
+		static WorldWrapper* instance() {
+			if (_instance == nullptr)
+				_instance = new WorldWrapper();
+			return dynamic_cast<WorldWrapper*>(_instance);
+		}
+
+	protected:
+		virtual void setup_functions() override;
 };
 
 #endif

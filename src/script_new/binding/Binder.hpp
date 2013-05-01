@@ -85,7 +85,7 @@ class Binder {
 			if (!std::is_same<Base, NoBase>::value) {
 				_functions.parent = &Base::_functions;
 			}
-			if (!_functions.static_data.empty()) {
+			if (!_functions.static_data.empty() || !_functions.static_methods.empty()) {
 				BindHelper::RegisterGlobal(state, _classname, &resolve_static);
 			}
 		}

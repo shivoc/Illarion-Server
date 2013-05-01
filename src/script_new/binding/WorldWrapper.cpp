@@ -29,22 +29,20 @@
 #include "script/binding/ScriptItemWrapper.hpp"
 #include "script/binding/ItemLookAtWrapper.hpp"
 
-#define CLASS_TABLE_NAME "game.world"
-
-void WorldWrapper::push(struct lua_State* state, World* world) {
-	luaH_getmethods(state, CLASS_TABLE_NAME);
+WorldWrapper::WorldWrapper() : Binder("world") {
 }
 
-void WorldWrapper::Register(struct lua_State* state) {
-	// we only use the methods table for this class, doesn't seem to work if we push the class table...
-	// TODO check if everything works as expected...
-	luaH_register_class(state, CLASS_TABLE_NAME);
+void WorldBinder::push(lua_State* state, const World& target, const std::string& classname) {
+	BindHelper::push_id(state, 0, classname);
+}
 
-	luaH_getmethods(state, CLASS_TABLE_NAME);
-	luaH_register_function(state, "getItemName", getItemName);
-	luaH_register_function(state, "itemInform", itemInform);
+World* WorldBinder::get(lua_State* state, int index, const std::string& classname) {
+	return World::get();
+}
 
-	lua_setglobal(state, "world");
+void WorldWrapper::setup_functions() {
+	_functions.static_methods["getItemName"] = &getItemName;
+	_functions.static_methods["itemInform"] = &itemInform;
 }
 
 int WorldWrapper::getItemName(struct lua_State* state) {
