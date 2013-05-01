@@ -71,7 +71,7 @@ class LuaScript {
 		std::string getFileName() const {  return {}; }
 		void addQuestScript(const std::string &entrypoint, const std::shared_ptr<LuaScript> &script) { }
 
-		static void shutdownLua() { }
+		static void shutdownLua();
 		bool existsEntrypoint(const std::string &entrypoint) { return false; }
 
 		virtual ~LuaScript() { }

@@ -138,3 +138,13 @@ int LuaScript::add_backtrace(lua_State *L) {
 
     return 1;
 }
+
+void LuaScript::shutdownLua() {
+	BindHelper::unregister();
+
+	if (_luaState != nullptr) {
+		lua_close(_luaState);
+		_luaState = nullptr;
+	}
+}
+

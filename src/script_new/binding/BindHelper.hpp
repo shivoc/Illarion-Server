@@ -23,6 +23,8 @@
 
 #include <map>
 #include <string>
+#include <vector>
+#include <functional>
 
 typedef int(*lua_function)(struct lua_State*);
 typedef std::map<std::string, lua_function> function_map;
@@ -31,8 +33,9 @@ struct BindFunctions {
 	function_map new_index;
 	function_map mem_fun;
 	function_map accessors;
-	lua_function constructor;
+	lua_function constructor = nullptr;
 	function_map static_data;
+	lua_function gc = nullptr;
 
 	BindFunctions* parent = nullptr;
 };
@@ -42,7 +45,7 @@ class BindHelper {
 		static int resolve_index(lua_State* state, const BindFunctions& functions);
 		static int new_index(lua_State* state, const BindFunctions& functions);
 		static int resolve_static(lua_State* state, const BindFunctions& functions);
-		static void Register(lua_State* state, const std::string& classname, lua_function index, lua_function newindex, lua_function new_fun);
+		static void Register(lua_State* state, const std::string& classname, lua_function index, lua_function newindex, lua_function new_fun, lua_function gc_fun);
 		static void RegisterGlobal(lua_State* state, const std::string& name, lua_function index);
 		static void push_ptr_userdata(lua_State* state, void* ptr, size_t size, const std::string& classname);
 		static void** get_ptr_userdata(lua_State* state, int index, const std::string& classname);
@@ -50,6 +53,10 @@ class BindHelper {
 		static void push_id(lua_State* state, uint64_t id, const std::string& classname);
 		static uint64_t get_id(lua_State* state, int index, const std::string& classname);
 		static int push_int(lua_State* state, uint64_t value);
+		static void add_deregister_function(std::function<void()>);
+		static void unregister();
+	private:
+		static std::vector<std::function<void()>> _deregister_functions;
 };
 
 #endif

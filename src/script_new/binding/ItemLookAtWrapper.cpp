@@ -28,8 +28,6 @@
 
 #include "script/binding/helper.hpp"
 
-ItemLookAtWrapper* ItemLookAtWrapper::_instance;
-
 ItemLookAtWrapper::ItemLookAtWrapper() : Binder("ItemLookAt") {
 }
 
@@ -37,11 +35,19 @@ void ItemLookAtWrapper::setup_functions() {
 	_functions.accessors["name"] = &getName;
 	_functions.new_index["name"] = &setName;
 	_functions.constructor = &create;
+	_functions.gc = &gc_fun;
 }
 
 int ItemLookAtWrapper::create(struct lua_State* state) {
 	instance()->push(state, *(new ItemLookAt()));
 	return 1;
+}
+
+int ItemLookAtWrapper::gc_fun(struct lua_State* state) {
+	ItemLookAt* itemlookat = instance()->get(state, 1);
+	lua_pop(state, 1);
+	delete itemlookat;
+	return 0;
 }
 
 int ItemLookAtWrapper::getName(struct lua_State* state) {

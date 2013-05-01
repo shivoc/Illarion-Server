@@ -27,8 +27,6 @@
 #include "script/binding/helper.hpp"
 #include "script/binding/ItemWrapper.hpp"
 
-ScriptItemWrapper* ScriptItemWrapper::_instance = nullptr;
-
 ScriptItemWrapper::ScriptItemWrapper() : Binder("ScriptItem") {
 }
 
@@ -44,44 +42,3 @@ void ScriptItemWrapper::setup_functions() {
         .def_readonly("itempos", &ScriptItem::itempos)
         .def_readonly("inside", &ScriptItem::inside)
 */
-
-#if 0
-void ScriptItemWrapper::push(struct lua_State* state, const ScriptItem& item) {
-	lua_newtable(state);
-	luaL_getmetatable(state, CLASS_TABLE_NAME);
-	lua_setmetatable(state, -2);
-
-	push_values(state, item);
-}
-
-void ScriptItemWrapper::push_values(struct lua_State* state, const ScriptItem& item) {
-	ItemWrapper::push_values(state, item);
-}
-
-void ScriptItemWrapper::get_values(struct lua_State* state, ScriptItem& item) {
-}
-
-void ScriptItemWrapper::Register(struct lua_State* state) {
-	luaH_register_struct(state, CLASS_TABLE_NAME, CLASS_BASE_TABLE_NAME);
-}
-
-ScriptItem ScriptItemWrapper::get(struct lua_State* state, int index) {
-	luaL_checktype(state, index, LUA_TTABLE);
-	lua_getmetatable(state, index);
-	luaL_getmetatable(state, CLASS_TABLE_NAME);
-	int equal = lua_rawequal(state, -1, -2);
-	lua_pop(state, 2);
-		
-	if (!equal) {
-		luaL_typerror(state, index, CLASS_TABLE_NAME);
-	}
-
-	// TODO copy item to top of stack
-	ScriptItem item;
-
-	get_values(state, item);
-	// TODO pop copy again
-
-	return item;
-}
-#endif

@@ -26,26 +26,6 @@
 
 #include "script/binding/helper.hpp"
 
-#if 0
-void ItemWrapper::push(struct lua_State* state, const Item& item) {
-	lua_newtable(state);
-	luaL_getmetatable(state, CLASS_TABLE_NAME);
-	lua_setmetatable(state, -2);
-
-	push_values(state, item);
-}
-
-void ItemWrapper::Register(struct lua_State* state) {
-	luaH_register_struct(state, CLASS_TABLE_NAME);
-}
-
-void ItemWrapper::push_values(struct lua_State* state, const Item& item) {
-	luaH_pushint(state, "id", item.getId());
-}
-#endif
-
-ItemWrapper* ItemWrapper::_instance = nullptr;
-
 ItemWrapper::ItemWrapper() : Binder("Item") {
 }
 

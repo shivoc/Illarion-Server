@@ -58,6 +58,7 @@ class IdBinder {
 			return getById(id);
 			//return getById(BindHelper::get_id(state, index, classname));
 		}
+
 	protected:
 		virtual Target* getById(uint64_t id) = 0;
 		virtual uint64_t getId(Target const*) = 0;
@@ -78,10 +79,9 @@ class Binder {
 			return BindHelper::resolve_static(state, _functions);
 		}
 
-
 		void Register(lua_State* state) {
 			setup_functions();
-			BindHelper::Register(state, _classname, &resolve_index, &new_index, _functions.constructor);
+			BindHelper::Register(state, _classname, &resolve_index, &new_index, _functions.constructor, _functions.gc);
 			if (!std::is_same<Base, NoBase>::value) {
 				_functions.parent = &Base::_functions;
 			}
@@ -101,14 +101,24 @@ class Binder {
 
 		static BindFunctions _functions;
 
+		virtual ~Binder() { }
 	protected:
 		virtual void setup_functions() = 0;
 		const std::string _classname;
-		Binder(const std::string& classname) : _classname{classname} { }
+		Binder(const std::string& classname) : _classname{classname} {
+			BindHelper::add_deregister_function([] {
+				delete Binder<Target, BindType, Base>::_instance;
+				Binder<Target, BindType, Base>::_instance = nullptr;
+			});
+		}
+		static Binder<Target, BindType, Base>* _instance;
 };
 
 template<typename foo, typename bar, typename baz>
 BindFunctions Binder<foo, bar, baz>::_functions;
+
+template<typename foo, typename bar, typename baz>
+Binder<foo, bar, baz>* Binder<foo, bar, baz>::_instance = nullptr;
 
 template<uint64_t value>
 int ValueBinder(lua_State* state) {

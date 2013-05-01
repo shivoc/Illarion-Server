@@ -37,8 +37,6 @@ uint64_t PlayerIdBinder::getId(Player const* character) {
 	return character->getId();
 }
 
-PlayerWrapper* PlayerWrapper::_instance = nullptr;
-
 PlayerWrapper::PlayerWrapper() : Binder("Player") {
 }
 

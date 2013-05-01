@@ -40,15 +40,15 @@ class ItemLookAtWrapper : public Binder<ItemLookAt> {
 
 		static int getName(struct lua_State* state);
 		static int setName(struct lua_State* state);
+		static int gc_fun(struct lua_State* state);
 
 		static ItemLookAtWrapper* instance() {
 			if (_instance == nullptr)
 				_instance = new ItemLookAtWrapper();
-			return _instance;
+			return dynamic_cast<ItemLookAtWrapper*>(_instance);
 		}
 
 	protected:
-		static ItemLookAtWrapper* _instance;
 		virtual void setup_functions() override;
 };
 

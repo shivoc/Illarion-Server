@@ -24,6 +24,8 @@
 
 #include "Logger.hpp"
 
+std::vector<std::function<void()>> BindHelper::_deregister_functions;
+
 lua_function get_function(const function_map& map, std::string method) {
 	auto target_fun = map.find(method);
 	if (target_fun != map.end()) {
@@ -113,7 +115,7 @@ int BindHelper::resolve_static(lua_State* state, const BindFunctions& functions)
 	return 0;
 }
 
-void BindHelper::Register(lua_State* state, const std::string& classname, lua_function index, lua_function newindex, lua_function new_fun) {
+void BindHelper::Register(lua_State* state, const std::string& classname, lua_function index, lua_function newindex, lua_function new_fun, lua_function gc_fun) {
 	std::string tablename = "game." + classname;
 	luaL_newmetatable(state, tablename.c_str());
 
@@ -124,6 +126,12 @@ void BindHelper::Register(lua_State* state, const std::string& classname, lua_fu
 	lua_pushstring(state, "__newindex");
 	lua_pushcfunction(state, newindex);
 	lua_settable(state, -3);
+
+	if (gc_fun != nullptr) {
+		lua_pushstring(state, "__gc");
+		lua_pushcfunction(state, gc_fun);
+		lua_settable(state, -3);
+	}
 
 	lua_pop(state, 1);
 
@@ -195,3 +203,11 @@ int BindHelper::push_int(lua_State* state, uint64_t value) {
 	return 1;
 }
 
+void BindHelper::unregister() {
+	for (auto func : _deregister_functions)
+		func();
+}
+
+void BindHelper::add_deregister_function(std::function<void()> func) {
+	_deregister_functions.push_back(func);
+}

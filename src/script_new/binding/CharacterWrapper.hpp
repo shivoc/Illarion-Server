@@ -40,11 +40,10 @@ class CharacterWrapper : public Binder<Character, CharIdBinder> {
 		static CharacterWrapper* instance() {
 			if (_instance == nullptr)
 				_instance = new CharacterWrapper();
-			return _instance;
+			return dynamic_cast<CharacterWrapper*>(_instance);
 		}
 
 	protected:
-		static CharacterWrapper* _instance;
 		virtual void setup_functions() override;
 };
 

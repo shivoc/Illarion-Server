@@ -37,11 +37,10 @@ class ItemWrapper : public Binder<Item> {
 		static ItemWrapper* instance() {
 			if (_instance == nullptr)
 				_instance = new ItemWrapper();
-			return _instance;
+			return dynamic_cast<ItemWrapper*>(_instance);
 		}
 
 	protected:
-		static ItemWrapper* _instance;
 		virtual void setup_functions() override;
 
 };

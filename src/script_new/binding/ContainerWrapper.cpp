@@ -28,8 +28,6 @@
 
 #include "script/binding/helper.hpp"
 
-ContainerWrapper* ContainerWrapper::_instance = nullptr;
-
 ContainerWrapper::ContainerWrapper() : Binder("Container") {
 }
 

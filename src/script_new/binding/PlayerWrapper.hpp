@@ -41,11 +41,10 @@ class PlayerWrapper : public Binder<Player, PlayerIdBinder, CharacterWrapper> {
 		static PlayerWrapper* instance() {
 			if (_instance == nullptr)
 				_instance = new PlayerWrapper();
-			return _instance;
+			return dynamic_cast<PlayerWrapper*>(_instance);
 		}
 
 	protected:
-		static PlayerWrapper* _instance;
 		virtual void setup_functions() override;
 };
 

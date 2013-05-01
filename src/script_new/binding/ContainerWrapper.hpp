@@ -35,11 +35,10 @@ class ContainerWrapper : public Binder<Container> {
 		static ContainerWrapper* instance() {
 			if (_instance == nullptr)
 				_instance = new ContainerWrapper();
-			return _instance;
+			return dynamic_cast<ContainerWrapper*>(_instance);
 		}
 
 	protected:
-		static ContainerWrapper* _instance;
 		virtual void setup_functions() override;
 };
 

@@ -34,11 +34,10 @@ class ScriptItemWrapper : public Binder<ScriptItem, PointerBinder<ScriptItem>, I
 		static ScriptItemWrapper* instance() {
 			if (_instance == nullptr)
 				_instance = new ScriptItemWrapper();
-			return _instance;
+			return dynamic_cast<ScriptItemWrapper*>(_instance);
 		}
 
 	protected:
-		static ScriptItemWrapper* _instance;
 		virtual void setup_functions() override;
 };
 

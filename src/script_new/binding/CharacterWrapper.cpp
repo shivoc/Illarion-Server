@@ -40,8 +40,6 @@ uint64_t CharIdBinder::getId(Character const* character) {
 	return character->getId();
 }
 
-CharacterWrapper* CharacterWrapper::_instance = nullptr;
-
 void CharacterWrapper::setup_functions() {
 	_functions.mem_fun["inform"] = &inform;
 	_functions.mem_fun["getBackPack"] = &getBackPack;
