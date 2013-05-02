@@ -47,6 +47,25 @@ class PointerBinder {
 };
 
 template<typename Target>
+class CopyBinder {
+	public:
+		void push(lua_State* state, const Target& target, const std::string& classname) {
+			void* ptr = new Target(target);
+			BindHelper::push_ptr_userdata(state, ptr, sizeof(Target**), classname);
+		}
+
+		Target* get(lua_State* state, int index, const std::string& classname) {
+			Target** raw = (Target**)BindHelper::get_ptr_userdata(state, index, classname);
+			Target* ptr = dynamic_cast<Target*>(*raw);
+			if (ptr == nullptr) {
+				BindHelper::arg_error(state, index, classname);
+				return nullptr;
+			}
+			return ptr;
+		}
+};
+
+template<typename Target>
 class IdBinder {
 	public:
 		void push(lua_State* state, const Target& target, const std::string& classname) {
@@ -56,7 +75,6 @@ class IdBinder {
 		Target* get(lua_State* state, int index, const std::string& classname) {
 			uint64_t id = BindHelper::get_id(state, index, classname);
 			return getById(id);
-			//return getById(BindHelper::get_id(state, index, classname));
 		}
 
 	protected:
@@ -64,6 +82,7 @@ class IdBinder {
 		virtual uint64_t getId(Target const*) = 0;
 };
 
+#include <iostream>
 template<typename Target, typename BindType = PointerBinder<Target>, typename Base = NoBase>
 class Binder {
 	public:
@@ -107,8 +126,8 @@ class Binder {
 		const std::string _classname;
 		Binder(const std::string& classname) : _classname{classname} {
 			BindHelper::add_deregister_function([] {
-				delete Binder<Target, BindType, Base>::_instance;
-				Binder<Target, BindType, Base>::_instance = nullptr;
+				delete _instance;
+				_instance = nullptr;
 			});
 		}
 		static Binder<Target, BindType, Base>* _instance;

@@ -27,7 +27,7 @@
 class ScriptItem;
 struct lua_State;
 
-class ScriptItemWrapper : public Binder<ScriptItem, PointerBinder<ScriptItem>, ItemWrapper> {
+class ScriptItemWrapper : public Binder<ScriptItem, CopyBinder<ScriptItem>, ItemWrapper> {
 	public:
 		ScriptItemWrapper();
 
@@ -36,6 +36,15 @@ class ScriptItemWrapper : public Binder<ScriptItem, PointerBinder<ScriptItem>, I
 				_instance = new ScriptItemWrapper();
 			return dynamic_cast<ScriptItemWrapper*>(_instance);
 		}
+
+		static int create(lua_State* state);
+		static int gc_fun(lua_State* state);
+		static int getOwner(lua_State* state);
+		static int getPosition(lua_State* state);
+		static int getItemposition(lua_State* state);
+		static int getInside(lua_State* state);
+		static int getType(lua_State* state);
+
 
 	protected:
 		virtual void setup_functions() override;

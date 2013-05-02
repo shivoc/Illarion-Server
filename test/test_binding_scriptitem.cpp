@@ -36,6 +36,10 @@ class scriptitem_bindings : public ::testing::Test {
 	scriptitem_bindings() {
 	    ON_CALL(world, findCharacter(character.getId())).WillByDefault(Return(&character));
 	}
+
+	~scriptitem_bindings() {
+		LuaScript::shutdownLua();
+	}
 };
 
 TEST_F(scriptitem_bindings, test_id_property) {
@@ -211,6 +215,7 @@ TEST_F(scriptitem_bindings, test_inside) {
 			 };
     auto retval = script.scriptitem_test(item);
     EXPECT_EQ(23, retval.getId());
+    delete item.inside;
 }
 
 int main(int argc, char **argv) {

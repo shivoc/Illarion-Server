@@ -27,12 +27,22 @@ class Item;
 struct lua_State;
 
 // TODO move to IdBinder
-class ItemWrapper : public Binder<Item> {
+class ItemWrapper : public Binder<Item, CopyBinder<Item>> {
 	public:
 		ItemWrapper();
 
 		static int getId(lua_State* state);
 		static int setId(lua_State* state);
+		static int getWear(lua_State* state);
+		static int setWear(lua_State* state);
+		static int getNumber(lua_State* state);
+		static int setNumber(lua_State* state);
+		static int getQuality(lua_State* state);
+		static int setQuality(lua_State* state);
+		static int getData(lua_State* state);
+		static int setData(lua_State* state);
+		static int create(lua_State* state);
+		static int gc_fun(lua_State* state);
 
 		static ItemWrapper* instance() {
 			if (_instance == nullptr)

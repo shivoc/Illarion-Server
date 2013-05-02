@@ -41,22 +41,19 @@ void PositionWrapper::setup_functions() {
 }
 
 int PositionWrapper::new_pos(struct lua_State* state) {
-	position* ptr = nullptr;
 	if (lua_gettop(state) == 0) {
-		ptr = new position();
 		lua_pop(state, 1);
+		instance()->push(state, position());
 	} else if (lua_gettop(state) == 3) {
 		short x = luaL_checknumber(state, 1);
 		short y = luaL_checknumber(state, 2);
 		short z = luaL_checknumber(state, 3);
-		ptr = new position(x, y, z);
 		lua_pop(state, 3);
+		instance()->push(state, position(x,y,z));
 	} else {
 		BindHelper::numarg_error(state, "position() expects 0 or 3 arguments");
 		return 0;
 	}
-
-	instance()->push(state, *ptr);
 	return 1;
 }
 

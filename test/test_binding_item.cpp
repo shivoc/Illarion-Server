@@ -17,6 +17,10 @@ class item_bindings : public ::testing::Test {
 	public:
 		Item item;
 		MockWorld world;
+
+		~item_bindings() {
+			LuaScript::shutdownLua();
+		}
 };
 
 TEST_F(item_bindings, test_id_property) {

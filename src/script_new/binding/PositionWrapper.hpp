@@ -26,7 +26,7 @@
 struct position;
 struct lua_State;
 
-class PositionWrapper : public Binder<position> {
+class PositionWrapper : public Binder<position, CopyBinder<position>> {
 	public:
 		PositionWrapper();
 

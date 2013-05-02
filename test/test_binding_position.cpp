@@ -15,6 +15,9 @@ class position_bindings : public ::testing::Test {
 	public:
 		position pos;
 		MockWorld world;
+		~position_bindings() {
+			LuaScript::shutdownLua();
+		}
 };
 
 TEST_F(position_bindings, test_x_property) {
