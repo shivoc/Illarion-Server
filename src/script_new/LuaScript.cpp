@@ -27,6 +27,7 @@
 #include "binding/CharacterWrapper.hpp"
 #include "binding/PlayerWrapper.hpp"
 #include "binding/WorldWrapper.hpp"
+#include "binding/PositionWrapper.hpp"
 #include "binding/ItemWrapper.hpp"
 #include "binding/ScriptItemWrapper.hpp"
 #include "binding/ItemLookAtWrapper.hpp"
@@ -79,6 +80,7 @@ void LuaScript::init_state() {
 	CharacterWrapper::instance()->Register(_luaState);
 	PlayerWrapper::instance()->Register(_luaState);
 	WorldWrapper::instance()->Register(_luaState);
+	PositionWrapper::instance()->Register(_luaState);
 	ItemWrapper::instance()->Register(_luaState);
 	ScriptItemWrapper::instance()->Register(_luaState);
 	ItemLookAtWrapper::instance()->Register(_luaState);

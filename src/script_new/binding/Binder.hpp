@@ -81,7 +81,7 @@ class Binder {
 
 		void Register(lua_State* state) {
 			setup_functions();
-			BindHelper::Register(state, _classname, &resolve_index, &new_index, _functions.constructor, _functions.gc);
+			BindHelper::Register(state, _classname, &resolve_index, &new_index, _functions);
 			if (!std::is_same<Base, NoBase>::value) {
 				_functions.parent = &Base::_functions;
 			}

@@ -124,7 +124,7 @@ int BindHelper::resolve_static(lua_State* state, const BindFunctions& functions)
 	return 1;
 }
 
-void BindHelper::Register(lua_State* state, const std::string& classname, lua_function index, lua_function newindex, lua_function new_fun, lua_function gc_fun) {
+void BindHelper::Register(lua_State* state, const std::string& classname, lua_function index, lua_function newindex, const BindFunctions& functions) {
 	std::string tablename = "game." + classname;
 	luaL_newmetatable(state, tablename.c_str());
 
@@ -136,16 +136,28 @@ void BindHelper::Register(lua_State* state, const std::string& classname, lua_fu
 	lua_pushcfunction(state, newindex);
 	lua_settable(state, -3);
 
-	if (gc_fun != nullptr) {
+	if (functions.gc != nullptr) {
 		lua_pushstring(state, "__gc");
-		lua_pushcfunction(state, gc_fun);
+		lua_pushcfunction(state, functions.gc);
+		lua_settable(state, -3);
+	}
+
+	if (functions.to_string != nullptr) {
+		lua_pushstring(state, "__tostring");
+		lua_pushcfunction(state, functions.to_string);
+		lua_settable(state, -3);
+	}
+
+	if (functions.eq != nullptr) {
+		lua_pushstring(state, "__eq");
+		lua_pushcfunction(state, functions.eq);
 		lua_settable(state, -3);
 	}
 
 	lua_pop(state, 1);
 
-	if (new_fun != nullptr) {
-		lua_pushcfunction(state, new_fun);
+	if (functions.constructor != nullptr) {
+		lua_pushcfunction(state, functions.constructor);
 		lua_setglobal(state, classname.c_str());
 	}
 }
@@ -186,6 +198,10 @@ void** BindHelper::get_ptr_userdata(lua_State* state, int index, const std::stri
 void BindHelper::arg_error(lua_State* state, int index, const std::string& classname) {
 	std::string error = "expected " + classname;
 	luaL_argcheck(state, false, index, error.c_str());
+}
+
+void BindHelper::numarg_error(lua_State* state, const std::string& error) {
+	luaL_argcheck(state, false, 0, error.c_str());
 }
 
 void BindHelper::push_id(lua_State* state, uint64_t id, const std::string& classname) {

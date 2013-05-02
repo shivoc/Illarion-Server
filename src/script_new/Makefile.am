@@ -4,11 +4,19 @@ AM_CPPFLAGS = -D_THREAD_SAFE -D_REENTRANT -DTESTSERVER -DCDataConnect_DEBUG -DAd
 noinst_LTLIBRARIES = libscriptbinding.la
 
 libscriptbinding_la_SOURCES = LuaScript.cpp LuaItemScript.cpp \
-			      LuaItemScript.cpp \
-			      binding/helper.cpp \
+			      LuaItemScript.cpp LuaTestSupportScript.cpp \
+			      binding/helper.cpp binding/PositionWrapper.cpp \
 			      binding/CharacterWrapper.cpp binding/WorldWrapper.cpp \
 			      binding/PlayerWrapper.cpp binding/ItemLookAtWrapper.cpp \
 			      binding/ScriptItemWrapper.cpp binding/ItemWrapper.cpp \
 			      binding/ContainerWrapper.cpp binding/BindHelper.cpp
 
-noinst_HEADERS = LuaScript.hpp
+noinst_HEADERS = LuaDepotScript.hpp LuaItemScript.hpp LuaLearnScript.hpp \
+		 LuaLoginScript.hpp LuaLogoutScript.hpp \
+		 LuaLongTimeEffectScript.hpp LuaLookAtItemScript.hpp \
+		 LuaLookAtPlayerScript.hpp LuaMagicScript.hpp \
+		 LuaMonsterScript.hpp LuaNPCScript.hpp \
+		 LuaPlayerDeathScript.hpp LuaQuestScript.hpp \
+		 LuaReloadScript.hpp LuaScheduledScript.hpp LuaScript.hpp \
+		 LuaTestSupportScript.hpp LuaTileScript.hpp \
+		 LuaTriggerScript.hpp LuaWeaponScript.hpp

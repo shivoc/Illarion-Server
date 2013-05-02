@@ -37,6 +37,8 @@ struct BindFunctions {
 	function_map static_data;
 	function_map static_methods;
 	lua_function gc = nullptr;
+	lua_function to_string = nullptr;
+	lua_function eq = nullptr;
 
 	BindFunctions* parent = nullptr;
 };
@@ -46,11 +48,12 @@ class BindHelper {
 		static int resolve_index(lua_State* state, const BindFunctions& functions);
 		static int new_index(lua_State* state, const BindFunctions& functions);
 		static int resolve_static(lua_State* state, const BindFunctions& functions);
-		static void Register(lua_State* state, const std::string& classname, lua_function index, lua_function newindex, lua_function new_fun, lua_function gc_fun);
+		static void Register(lua_State* state, const std::string& classname, lua_function index, lua_function newindex, const BindFunctions& functions);
 		static void RegisterGlobal(lua_State* state, const std::string& name, lua_function index);
 		static void push_ptr_userdata(lua_State* state, void* ptr, size_t size, const std::string& classname);
 		static void** get_ptr_userdata(lua_State* state, int index, const std::string& classname);
 		static void arg_error(lua_State* state, int index, const std::string& classname);
+		static void numarg_error(lua_State* state, const std::string& message);
 		static void push_id(lua_State* state, uint64_t id, const std::string& classname);
 		static uint64_t get_id(lua_State* state, int index, const std::string& classname);
 		static int push_int(lua_State* state, uint64_t value);
