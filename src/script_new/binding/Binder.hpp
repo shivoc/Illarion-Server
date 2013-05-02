@@ -82,7 +82,6 @@ class IdBinder {
 		virtual uint64_t getId(Target const*) = 0;
 };
 
-#include <iostream>
 template<typename Target, typename BindType = PointerBinder<Target>, typename Base = NoBase>
 class Binder {
 	public:

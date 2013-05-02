@@ -54,7 +54,6 @@ int ScriptItemWrapper::create(lua_State* state) {
 }
 
 int ScriptItemWrapper::gc_fun(struct lua_State* state) {
-	std::cout << "gc scriptitem " << lua_gettop(state) << std::endl;
 	ScriptItem* ptr = instance()->get(state, 1);
 	lua_pop(state, 1);
 	delete ptr;

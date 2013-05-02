@@ -143,7 +143,6 @@ int LuaScript::add_backtrace(lua_State *L) {
 
 void LuaScript::shutdownLua() {
 	if (_luaState != nullptr) {
-		std::cout << "calling lua_close" << std::endl;
 		lua_close(_luaState);
 		_luaState = nullptr;
 

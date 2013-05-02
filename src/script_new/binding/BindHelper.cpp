@@ -124,7 +124,6 @@ int BindHelper::resolve_static(lua_State* state, const BindFunctions& functions)
 	return 1;
 }
 
-#include <iostream>
 void BindHelper::Register(lua_State* state, const std::string& classname, lua_function index, lua_function newindex, const BindFunctions& functions) {
 	std::string tablename = "game." + classname;
 	luaL_newmetatable(state, tablename.c_str());
@@ -138,7 +137,6 @@ void BindHelper::Register(lua_State* state, const std::string& classname, lua_fu
 	lua_settable(state, -3);
 
 	if (functions.gc != nullptr) {
-		std::cout << "setting gc for " << classname << std::endl;
 		lua_pushstring(state, "__gc");
 		lua_pushcfunction(state, functions.gc);
 		lua_settable(state, -3);
