@@ -40,7 +40,6 @@ int BindHelper::resolve_index(lua_State* state, const BindFunctions& functions) 
 
 	lua_remove(state, 2);
 
-	
 	lua_function target_fun = nullptr;
 	const BindFunctions* ptr = &functions;
 
@@ -182,23 +181,23 @@ void BindHelper::RegisterGlobal(lua_State* state, const std::string& name, lua_f
 	lua_setglobal(state, name.c_str());
 }
 
-void BindHelper::push_ptr_userdata(lua_State* state, void* ptr, size_t size, const std::string& classname) {
+void BindHelper::push_ptr_userdata(lua_State* state, type_caster caster, const std::string& classname) {
 	std::string tablename = "game." + classname;
-	void** newptr = (void**)lua_newuserdata(state, size);
-	*newptr = ptr;
+	auto newptr = lua_newuserdata(state, sizeof(type_caster));
+	new(newptr)type_caster{caster};
 
 	luaL_getmetatable(state, tablename.c_str());
 	lua_setmetatable(state, -2);
 }
 
-void** BindHelper::get_ptr_userdata(lua_State* state, int index, const std::string& classname) {
+type_caster BindHelper::get_ptr_userdata(lua_State* state, int index, const std::string& classname) {
 	if (!lua_isuserdata(state, index)) {
 		arg_error(state, index, classname);
-		return nullptr;
+		return {};
 	}
 
-	void** raw_ptr = (void**)lua_touserdata(state, index);
-	return raw_ptr;
+	type_caster* raw_ptr = (type_caster*)lua_touserdata(state, index);
+	return *raw_ptr;
 }
 
 void BindHelper::arg_error(lua_State* state, int index, const std::string& classname) {

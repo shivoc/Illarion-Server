@@ -32,12 +32,13 @@ template<typename Target>
 class PointerBinder {
 	public:
 		void push(lua_State* state, const Target& target, const std::string& classname) {
-			BindHelper::push_ptr_userdata(state, (void*)&target, sizeof(Target**), classname);
+			// TODO ugly hack to cast away const for pointer binders... this should hopefully not be necessary once we bind everything by id...
+			BindHelper::push_ptr_userdata(state, {const_cast<Target*>(&target)}, classname);
 		}
 
 		Target* get(lua_State* state, int index, const std::string& classname) {
-			Target** raw = (Target**)BindHelper::get_ptr_userdata(state, index, classname);
-			Target* ptr = dynamic_cast<Target*>(*raw);
+			auto raw = BindHelper::get_ptr_userdata(state, index, classname);
+			Target* ptr = raw.cast<Target>();
 			if (ptr == nullptr) {
 				BindHelper::arg_error(state, index, classname);
 				return nullptr;
@@ -50,13 +51,12 @@ template<typename Target>
 class CopyBinder {
 	public:
 		void push(lua_State* state, const Target& target, const std::string& classname) {
-			void* ptr = new Target(target);
-			BindHelper::push_ptr_userdata(state, ptr, sizeof(Target**), classname);
+			BindHelper::push_ptr_userdata(state, type_caster(new Target{target}), classname);
 		}
 
 		Target* get(lua_State* state, int index, const std::string& classname) {
-			Target** raw = (Target**)BindHelper::get_ptr_userdata(state, index, classname);
-			Target* ptr = dynamic_cast<Target*>(*raw);
+			auto raw = BindHelper::get_ptr_userdata(state, index, classname);
+			Target* ptr = raw.cast<Target>();
 			if (ptr == nullptr) {
 				BindHelper::arg_error(state, index, classname);
 				return nullptr;

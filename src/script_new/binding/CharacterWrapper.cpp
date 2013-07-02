@@ -23,6 +23,7 @@
 #include <lua.hpp>
 
 #include "Character.hpp"
+#include "Container.hpp"
 #include "World.hpp"
 
 #include "script/LuaScript.hpp"

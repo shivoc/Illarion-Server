@@ -23,6 +23,7 @@
 #include <lua.hpp>
 
 #include "Item.hpp"
+#include "Container.hpp"
 
 #include "script/binding/CharacterWrapper.hpp"
 #include "script/binding/PositionWrapper.hpp"
