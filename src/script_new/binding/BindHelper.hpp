@@ -29,25 +29,20 @@
 typedef int(*lua_function)(struct lua_State*);
 typedef std::map<std::string, lua_function> function_map;
 
-template<typename T>
-void throw_ptr(void* ptr) {
-	throw static_cast<T*>(ptr);
-};
-
 class type_caster {
 	public:
 		template<typename T>
 			type_caster(T* ptr) {
 				_ptr = ptr;
-				_throw_func = throw_ptr<T>;// [](void* ptr) {
-					//throw static_cast<T*>(ptr);
-				//};
+				_throw_func =  [](void* ptr) {
+					throw static_cast<T*>(ptr);
+				};
 			}
 
 			// null object
 			explicit type_caster() {
 				_ptr = nullptr;
-				_throw_func = throw_ptr<void>;//[](void* ptr) {};
+				_throw_func = [](void* ptr) {};
 			}
 
 		template<typename T>
