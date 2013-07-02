@@ -30,10 +30,7 @@ enum clientcommands {
     C_LOGIN_TS = 0x0D,
     C_SCREENSIZE_TS = 0xA0,
     C_CHARMOVE_TS = 0x10,
-    C_IMOVERSTART_TS = 0x20,
-    C_IMOVEREND_TS = 0x2A,
-    C_PSPINRSTART_TS = 0x40,
-    C_PSPINREND_TS = 0x49,
+    C_PLAYERSPIN_TS = 0x11,
     C_LOOKATMAPITEM_TS = 0xFF,
     C_LOOKATCHARACTER_TS = 0x18,
     C_USE_TS = 0xFE,
@@ -45,6 +42,9 @@ enum clientcommands {
     C_WHISPER_TS = 0xF3,
     C_REFRESH_TS = 0xF2,
     C_LOGOUT_TS = 0xF1,
+    C_MOVEITEMFROMMAPTOMAP_TS = 0xEF,
+    C_PICKUPALLITEMS_TS = 0xEE,
+    C_PICKUPITEM_TS = 0xED,
     C_LOOKINTOCONTAINERONFIELD_TS = 0xEC,
     C_LOOKINTOINVENTORY_TS = 0xEB,
     C_LOOKINTOSHOWCASECONTAINER_TS = 0xEA,
@@ -312,8 +312,8 @@ public:
 
 class MoveItemFromMapToPlayerTS : public BasicClientCommand {
 private:
-    direction dir;
-    unsigned char pos;
+    position sourcePosition;
+    unsigned char inventorySlot;
     unsigned short count;
 
 public:
@@ -326,13 +326,27 @@ public:
 
 class MoveItemFromMapIntoShowCaseTS : public BasicClientCommand {
 private:
-    direction dir;
+    position sourcePosition;
     unsigned char showcase;
-    unsigned char pos;
+    unsigned char showcaseSlot;
     unsigned short count;
 
 public:
     MoveItemFromMapIntoShowCaseTS();
+    virtual void decodeData() override;
+    virtual void performAction(Player *player) override;
+    virtual ClientCommandPointer clone() override;
+};
+
+
+class MoveItemFromMapToMapTS : public BasicClientCommand {
+private:
+    position sourcePosition;
+    position targetPosition;
+    unsigned short count;
+
+public:
+    MoveItemFromMapToMapTS();
     virtual void decodeData() override;
     virtual void performAction(Player *player) override;
     virtual ClientCommandPointer clone() override;
@@ -413,6 +427,24 @@ public:
     virtual ClientCommandPointer clone() override;
 };
 
+class PickUpItemTS : public BasicClientCommand {
+private:
+    position pos;
+
+public:
+    PickUpItemTS();
+    virtual void decodeData() override;
+    virtual void performAction(Player *player) override;
+    virtual ClientCommandPointer clone() override;
+};
+
+class PickUpAllItemsTS : public BasicClientCommand {
+public:
+    PickUpAllItemsTS();
+    virtual void decodeData() override;
+    virtual void performAction(Player *player) override;
+    virtual ClientCommandPointer clone() override;
+};
 
 class LogOutTS : public BasicClientCommand {
 public:
@@ -501,12 +533,12 @@ public:
 };
 
 
-class PSpinActionTS : public BasicClientCommand {
+class PlayerSpinTS : public BasicClientCommand {
 private:
     direction dir;
 
 public:
-    PSpinActionTS(direction dir);
+    PlayerSpinTS();
     virtual void decodeData() override;
     virtual void performAction(Player *player) override;
     virtual ClientCommandPointer clone() override;
@@ -521,20 +553,6 @@ private:
 
 public:
     CharMoveTS();
-    virtual void decodeData() override;
-    virtual void performAction(Player *player) override;
-    virtual ClientCommandPointer clone() override;
-};
-
-
-class IMoverActionTS : public BasicClientCommand {
-private:
-    position pos;
-    uint16_t count;
-    direction dir;
-
-public:
-    IMoverActionTS(uint8_t dir);
     virtual void decodeData() override;
     virtual void performAction(Player *player) override;
     virtual ClientCommandPointer clone() override;

@@ -40,6 +40,8 @@ CommandFactory::CommandFactory() {
     templateList[C_WHISPER_TS ] = std::make_unique<WhisperTS>();
     templateList[C_REFRESH_TS ] = std::make_unique<RefreshTS>();
     templateList[C_LOGOUT_TS ] = std::make_unique<LogOutTS>();
+    templateList[C_PICKUPITEM_TS ] = std::make_unique<PickUpItemTS>();
+    templateList[C_PICKUPALLITEMS_TS ] = std::make_unique<PickUpAllItemsTS>();
     templateList[C_LOOKINTOCONTAINERONFIELD_TS ] = std::make_unique<LookIntoContainerOnFieldTS>();
     templateList[C_LOOKINTOINVENTORY_TS ] = std::make_unique<LookIntoInventoryTS>();
     templateList[C_LOOKINTOSHOWCASECONTAINER_TS ] = std::make_unique<LookIntoShowCaseContainerTS>();
@@ -48,6 +50,7 @@ CommandFactory::CommandFactory() {
     templateList[C_MOVEITEMBETWEENSHOWCASES_TS ] = std::make_unique<MoveItemBetweenShowCasesTS>();
     templateList[C_MOVEITEMFROMMAPINTOSHOWCASE_TS ] = std::make_unique<MoveItemFromMapIntoShowCaseTS>();
     templateList[C_MOVEITEMFROMMAPTOPLAYER_TS ] = std::make_unique<MoveItemFromMapToPlayerTS>();
+    templateList[C_MOVEITEMFROMMAPTOMAP_TS ] = std::make_unique<MoveItemFromMapToMapTS>();
     templateList[C_DROPITEMFROMPLAYERONMAP_TS ] = std::make_unique<DropItemFromInventoryOnMapTS>();
     templateList[C_MOVEITEMINSIDEINVENTORY_TS ] = std::make_unique<MoveItemInsideInventoryTS>();
     templateList[C_MOVEITEMFROMSHOWCASETOPLAYER_TS ] = std::make_unique<MoveItemFromShowCaseToPlayerTS>();
@@ -67,20 +70,10 @@ CommandFactory::CommandFactory() {
     templateList[BB_SERVERCOMMAND_TS ] = std::make_unique<BBServerCommandTS>();
     templateList[BB_WARPPLAYER_TS ] = std::make_unique<BBWarpPlayerTS>();
     templateList[BB_SPEAKAS_TS ] = std::make_unique<BBSpeakAsTS>();
-
-    for (int i = C_IMOVERSTART_TS; i <= C_IMOVEREND_TS; ++i) {
-        templateList[i] = std::make_unique<IMoverActionTS>(i - C_IMOVERSTART_TS);
-    }
-
     templateList[C_CHARMOVE_TS ] = std::make_unique<CharMoveTS>();
-
-    for (int i = C_PSPINRSTART_TS; i <= C_PSPINREND_TS; ++i) {
-        templateList[i] = std::make_unique<PSpinActionTS>(static_cast<direction>(i - C_PSPINRSTART_TS));
-    }
-
+    templateList[C_PLAYERSPIN_TS ] = std::make_unique<PlayerSpinTS>();
     templateList[C_LOOKATCHARACTER_TS ] = std::make_unique<LookAtCharacterTS>();
     templateList[C_REQUESTAPPEARANCE_TS ] = std::make_unique<RequestAppearanceTS>();
-
 }
 
 

@@ -279,13 +279,21 @@ void Player::openShowcase(Container *container, bool carry) {
     }
 
     if (showcases.size() < MAXSHOWCASES) {
-        while (isShowcaseOpen(showcaseCounter)) {
-            ++showcaseCounter;
+        uint8_t showcaseId;
+
+        if (container == backPackContents) {
+            showcaseId = BACKPACK_SHOWCASE;
+        } else {
+            while (isShowcaseOpen(showcaseCounter) || showcaseCounter == BACKPACK_SHOWCASE) {
+                ++showcaseCounter;
+            }
+
+            showcaseId = showcaseCounter;
         }
 
-        showcases[showcaseCounter] = std::make_unique<Showcase>(container, carry);
+        showcases[showcaseId] = std::make_unique<Showcase>(container, carry);
 
-        ServerCommandPointer cmd = std::make_shared<UpdateShowcaseTC>(showcaseCounter, container->getSlotCount(), container->getItems());
+        ServerCommandPointer cmd = std::make_shared<UpdateShowcaseTC>(showcaseId, container->getSlotCount(), container->getItems());
         Connection->addCommand(cmd);
     } else {
         inform("ERROR: Unable to open more than 100 containers.");
@@ -943,7 +951,7 @@ void Player::check_logindata() throw(Player::LogoutException) {
         }
 
         // check password
-        if (std::string(crypt(pw.c_str(),"$1$illarion1")) != real_pwd) {
+        if (pw != real_pwd) {
             Logger::alert(LogFacility::Player) << to_string() << " sent wrong password from ip: " << Connection->getIPAdress() << Log::end;
             throw LogoutException(WRONGPWD);
         }
@@ -2028,8 +2036,9 @@ void Player::setQuestProgress(TYPE_OF_QUEST_ID questid, TYPE_OF_QUESTSTATUS prog
 
         connection->commitTransaction();
     } catch (std::exception &e) {
-        std::cerr<<"exception: "<<e.what()<<" while setting quest progress!"<<std::endl;
+        Logger::error(LogFacility::Script) << "Setting quest progress failed for " << to_string() << ": " << e.what() << Log::end;
         connection->rollbackTransaction();
+        questWriteLock = false;
         return;
     }
 
