@@ -88,6 +88,9 @@ if [ ! test -e $ac_gmock_dir/src/gmock-all.cc ]; then
 	AC_MSG_ERROR([gmock sources not found])
 fi
 
+AC_ARG_ENABLE([newscript], AS_HELP_STRING([--enable-newscript],[Enable new script binding]))
+AM_CONDITIONAL(ENABLE_NEWSCRIPT, [test "x$enable_newscript" = "xyes"])
+
 AC_SUBST([GMOCK_DIR], [$ac_gmock_dir])
 AC_SUBST([GTEST_DIR], [$ac_gtest_dir])
 AC_SUBST([DEPS_CFLAGS])
@@ -95,6 +98,9 @@ AC_SUBST([DEPS_LIBS])
 
 AC_OUTPUT([Makefile
 	   src/Makefile
-	   src/script/Makefile
+	   src/binding-new/Makefile
+	   src/binding-new/script/Makefile
+	   src/binding-old/Makefile
+	   src/binding-old/script/Makefile
 	   test/Makefile
 ])

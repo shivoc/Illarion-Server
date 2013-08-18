@@ -20,14 +20,20 @@
 noinst_PROGRAMS = testserver
 noinst_LTLIBRARIES = libserver.la
 
+if ENABLE_NEWSCRIPT
+SCRIPT_BASE=binding-new
+else
+SCRIPT_BASE=binding-old
+endif
+
+SUBDIRS = $(SCRIPT_BASE) .
+
 AM_CXXFLAGS = -ggdb -pipe -Wall -Werror -Wno-deprecated -std=c++11 $(BOOST_CXXFLAGS) $(DEPS_CFLAGS) -fPIC
-AM_CPPFLAGS = -D_THREAD_SAFE -D_REENTRANT -DTESTSERVER -DCDataConnect_DEBUG -DAdminCommands_DEBUG $(BOOST_CPPFLAGS) -I$(top_srcdir)/src -DPIC
+AM_CPPFLAGS = -D_THREAD_SAFE -D_REENTRANT -DTESTSERVER -DCDataConnect_DEBUG -DAdminCommands_DEBUG $(BOOST_CPPFLAGS) -I$(top_srcdir)/src -DPIC -I$(top_srcdir)/src/$(SCRIPT_BASE)
 AM_LDFLAGS = $(BOOST_THREAD_LDFLAGS) $(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_SYSTEM_LDFLAGS) $(BOOST_REGEX_LDFLAGS)
-LDADD = -L/usr/local/lib -lpthread -lssl $(DEPS_LIBS) libserver.la $(top_builddir)/src/script/libscriptbinding.la
+LDADD = -L/usr/local/lib -lpthread -lssl $(DEPS_LIBS) libserver.la $(top_builddir)/src/$(SCRIPT_BASE)/script/libscriptbinding.la
 
 LIBS = $(BOOST_THREAD_LIBS) $(BOOST_FILESYSTEM_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_REGEX_LIBS)
-
-SUBDIRS = script .
 
 BUILT_SOURCES = version.hpp
 
@@ -65,7 +71,7 @@ netinterface/BasicCommand.cpp netinterface/BasicServerCommand.cpp netinterface/B
 netinterface/protocol/ServerCommands.cpp netinterface/protocol/ClientCommands.cpp netinterface/ByteBuffer.cpp \
 netinterface/protocol/BBIWIServerCommands.cpp netinterface/protocol/BBIWIClientCommands.cpp
 
-libserver_la_LIBADD = $(top_builddir)/src/script/libscriptbinding.la
+libserver_la_LIBADD = $(top_builddir)/src/$(SCRIPT_BASE)/script/libscriptbinding.la
 
 testserver_SOURCES = main.cpp
 
@@ -112,7 +118,7 @@ noinst_HEADERS = Showcase.hpp Container.hpp dialog/Dialog.hpp \
 		 LongTimeCharacterEffects.hpp LongTimeAction.hpp character_ptr.hpp \
 		 Player.hpp SpawnPoint.hpp LongTimeEffect.hpp Monster.hpp
 
-version.hpp: $(HEADERS) $(SOURCES) $(top_builddir)/src/script/libscriptbinding.la
+version.hpp: $(HEADERS) $(SOURCES) $(top_builddir)/src/$(SCRIPT_BASE)/script/libscriptbinding.la
 	echo "#define SERVER_VERSION \"`git describe --long`\"" > version.hpp
 
-$(top_builddir)/src/script/libscriptbinding.la: script
+$(top_builddir)/src/$(SCRIPT_BASE)/script/libscriptbinding.la: $(SCRIPT_BASE)
