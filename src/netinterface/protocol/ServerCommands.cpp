@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "ServerCommands.hpp"
@@ -36,6 +36,9 @@
 #include "dialog/MerchantDialog.hpp"
 #include "dialog/SelectionDialog.hpp"
 #include "dialog/CraftingDialog.hpp"
+
+KeepAliveTC::KeepAliveTC() : BasicServerCommand(SC_KEEPALIVE_TC) {
+}
 
 QuestProgressTC::QuestProgressTC(TYPE_OF_QUEST_ID id,
                                  const std::string &title,
@@ -63,6 +66,25 @@ QuestProgressTC::QuestProgressTC(TYPE_OF_QUEST_ID id,
 
 AbortQuestTC::AbortQuestTC(TYPE_OF_QUEST_ID id) : BasicServerCommand(SC_ABORTQUEST_TC) {
     addShortIntToBuffer(id);
+}
+
+AvailableQuestsTC::AvailableQuestsTC(const std::vector<position> &availableNow,
+                                     const std::vector<position> &availableSoon) : BasicServerCommand(SC_AVAILABLEQUESTS_TC) {
+    addShortIntToBuffer(availableNow.size());
+    
+    for (const auto &pos : availableNow) {
+        addShortIntToBuffer(pos.x);
+        addShortIntToBuffer(pos.y);
+        addShortIntToBuffer(pos.z);
+    }
+
+    addShortIntToBuffer(availableSoon.size());
+
+    for (const auto &pos : availableSoon) {
+        addShortIntToBuffer(pos.x);
+        addShortIntToBuffer(pos.y);
+        addShortIntToBuffer(pos.z);
+    }
 }
 
 InputDialogTC::InputDialogTC(const InputDialog &inputDialog, unsigned int dialogId) : BasicServerCommand(SC_INPUTDIALOG_TC) {
@@ -222,21 +244,23 @@ AppearanceTC::AppearanceTC(Character *cc, const Player *receivingPlayer) : Basic
         if (receivingPlayer->knows(player)) {
             addStringToBuffer(player->getName());
         } else {
-            std::string german = "Jemand";
-            std::string english = "Someone";
-            addStringToBuffer(receivingPlayer->nls(german, english));
+            addStringToBuffer("");
         }
+
+        addStringToBuffer(receivingPlayer->getCustomNameOf(player));
     } else if (cc->getType() == Character::monster) {
         Monster *monster = dynamic_cast<Monster *>(cc);
         addStringToBuffer(receivingPlayer->nls(monster->nameDe, monster->getName()));
+        addStringToBuffer("");
     } else {
         addStringToBuffer(cc->getName());
+        addStringToBuffer("");
     }
 
     addShortIntToBuffer(cc->getRace());
     addUnsignedCharToBuffer(cc->getAttribute(Character::sex));
     addShortIntToBuffer(cc->getAttribute(Character::hitpoints));
-    addUnsignedCharToBuffer(Data::RaceSizes.getRelativeSize(cc->getRace(), cc->getAttribute(Character::height)));
+    addUnsignedCharToBuffer(Data::RaceAttributes.getRelativeSize(cc->getRace(), cc->getAttribute(Character::height)));
     const Character::appearance appearance = cc->getAppearance();
     addUnsignedCharToBuffer(appearance.hairtype);
     addUnsignedCharToBuffer(appearance.beardtype);
@@ -291,10 +315,9 @@ void addItemLookAt(BasicServerCommand *cmd, const ItemLookAt &lookAt) {
     cmd->addUnsignedCharToBuffer((uint8_t)lookAt.getRareness());
     cmd->addStringToBuffer(lookAt.getDescription());
     cmd->addStringToBuffer(lookAt.getCraftedBy());
-    // TODO: Add the three bytes below, once the client can handle them
-    //cmd->addUnsignedCharToBuffer(lookAt.getLevel());
-    //cmd->addUnsignedCharToBuffer(lookAt.getArmorType());
-    //cmd->addUnsignedCharToBuffer(lookAt.getWeaponType());
+    cmd->addStringToBuffer(lookAt.getType());
+    cmd->addUnsignedCharToBuffer(lookAt.getLevel());
+    cmd->addUnsignedCharToBuffer(lookAt.isUsable());
     cmd->addShortIntToBuffer(lookAt.getWeight());
     cmd->addIntToBuffer(lookAt.getWorth());
     cmd->addStringToBuffer(lookAt.getQualityText());
@@ -459,6 +482,7 @@ MapStripeTC::MapStripeTC(const position &pos, NewClientView::stripedirection dir
     for (int i = 0; i < numberOfTiles; ++i) {
         if (fields[i]) {
             addShortIntToBuffer(fields[i]->getTileCode());
+            addUnsignedCharToBuffer(fields[i]->getMovementCost());
             addShortIntToBuffer(fields[i]->getMusicId());
             addUnsignedCharToBuffer(static_cast<unsigned char>(fields[i]->items.size()));
 
@@ -473,6 +497,7 @@ MapStripeTC::MapStripeTC(const position &pos, NewClientView::stripedirection dir
             }
         } else {
             addShortIntToBuffer(-1);
+            addUnsignedCharToBuffer(0);
             addShortIntToBuffer(0);
             addUnsignedCharToBuffer(0);
         }
@@ -529,7 +554,7 @@ MusicTC::MusicTC(short int title) : BasicServerCommand(SC_MUSIC_TC) {
 MusicDefaultTC::MusicDefaultTC() : BasicServerCommand(SC_MUSICDEFAULT_TC) {
 }
 
-UpdateAttribTC::UpdateAttribTC(TYPE_OF_CHARACTER_ID id, const std::string &name, short int value) : BasicServerCommand(SC_UPDATEATTRIB_TC) {
+UpdateAttribTC::UpdateAttribTC(TYPE_OF_CHARACTER_ID id, const std::string &name, unsigned short int value) : BasicServerCommand(SC_UPDATEATTRIB_TC) {
     addIntToBuffer(id);
     addStringToBuffer(name);
     addShortIntToBuffer(value);

@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -64,6 +64,10 @@ bool WaypointList::recalcStepList() {
         return false;
     }
 
+    if (positions.empty()) {
+        return false;
+    }
+
     steplist.clear();
     _movechar->getStepList(positions.front(), steplist);
     return (!steplist.empty());
@@ -77,7 +81,7 @@ bool WaypointList::makeMove() {
     }
 
     if (!_movechar->move(steplist.front())) {
-        return recalcStepList();
+        return steplist.size() > 1 && recalcStepList();
     }
 
     steplist.pop_front();

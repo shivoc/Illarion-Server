@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -298,7 +298,7 @@ void World::save_command(Player *cp) {
     });
 
     std::cout << "Save maps" << std::endl;
-    Save("Illarion");
+    Save();
 
     Players.for_each([this](Player *player) {
         Field *tempf;
@@ -328,6 +328,8 @@ void World::talkto_command(Player *player, const std::string &text) {
             Logger::info(LogFacility::Player) << *player << " talks to " << *target << ": " << match[2].str() << Log::end;
 #endif
             target->inform(match[2].str(), Player::informGM);
+            std::string message = "to " + player->to_string() + ": " + match[2].str();
+            player->inform(message, Player::informScriptMediumPriority);
         }
     }
 }
@@ -413,7 +415,7 @@ void World::forceLogoutOfAllPlayers() {
         sendMonitoringMessage(message);
         ServerCommandPointer cmd = std::make_shared<LogOutTC>(SERVERSHUTDOWN);
         player->Connection->shutdownSend(cmd);
-        PlayerManager::get().getLogOutPlayers().non_block_push_back(player);
+        PlayerManager::get().getLogOutPlayers().push_back(player);
     });
 
     Players.clear();
@@ -629,7 +631,7 @@ void World::tile_command(Player *cp, const std::string &tile) {
     }
 
     try {
-        setNextTile(cp, boost::lexical_cast<unsigned char>(tile));
+        setNextTile(cp, boost::lexical_cast<unsigned short>(tile));
     } catch (boost::bad_lexical_cast &) {
     }
 }
@@ -657,7 +659,7 @@ void World::turtleon_command(Player *cp, const std::string &tile) {
     }
 
     try {
-        auto id = boost::lexical_cast<unsigned char>(tile);
+        auto id = boost::lexical_cast<unsigned short>(tile);
         cp->setTurtleActive(true);
         cp->setTurtleTile(id);
     } catch (boost::bad_lexical_cast &) {
@@ -721,6 +723,7 @@ void World::what_command(Player *cp) {
             if (cp->hasGMRight(gmr_basiccommands))
 #endif
             {
+                message << ", Stack of " << top.getNumber();
                 message << ", Quality " << top.getQuality();
 
                 if (top.getDataBegin() != top.getDataEnd()) {
@@ -803,6 +806,23 @@ void World::teleport_command(Player *cp, const std::string &text) {
 
 void World::gmhelp_command(Player *cp) {
     if (!cp->hasGMRight(gmr_basiccommands)) {
+#ifdef TESTSERVER
+        std::string tmessage = " <> - parameter.  [] - optional.  | = choice.  () = shortcut";
+        cp->inform(tmessage);
+        tmessage = "!create <id> [<quantity> [<quality> [[<data_key>=<data_value>] ...]]] creates an item in your inventory.";
+        cp->inform(tmessage);
+        tmessage = "!jumpto <playerid|name> - (!j) teleports you to the player.";
+        cp->inform(tmessage);
+        tmessage = "!warp <x> <y> [<z>] | !warp <z> - (!w) change given coordinates.";
+        cp->inform(tmessage);
+        tmessage = "!what - sends various information of the field or the character in front of you.";
+        cp->inform(tmessage);
+        tmessage = "!who [<player>] - List all players online or a single player if specified.";
+        cp->inform(tmessage);
+#else
+        std::string tmessage = "!what - sends various information of the field or the character in front of you.";
+        cp->inform(tmessage);
+#endif
         return;
     }
 
@@ -810,9 +830,9 @@ void World::gmhelp_command(Player *cp) {
     cp->inform(tmessage);
 
     if (cp->hasGMRight(gmr_basiccommands)) {
-        tmessage = "!what - sends different informations of the field or the character in front of you.";
+        tmessage = "!what - sends various information of the field or the character in front of you.";
         cp->inform(tmessage);
-        tmessage = "!who [player] - List all players online or a single player if specified.";
+        tmessage = "!who [<player>] - List all players online or a single player if specified.";
         cp->inform(tmessage);
         tmessage = "!forceintroduce <char id|char name> - (!fi) introduces the char to all gms in range.";
         cp->inform(tmessage);
@@ -822,12 +842,12 @@ void World::gmhelp_command(Player *cp) {
         cp->inform(tmessage);
         tmessage = "!broadcast <message> - (!bc) Broadcasts the message <message> to all players IG.";
         cp->inform(tmessage);
-        tmessage = "!create id [quantity [quality [[data_key=data_value] ...]]] creates an item in your inventory.";
+        tmessage = "!create <id> [<quantity> [<quality> [[<data_key>=<data_value>] ...]]] creates an item in your inventory.";
 
     }
 
     if (cp->hasGMRight(gmr_warp)) {
-        tmessage = "!warp <x> <y> [z] | !warp z - (!w) change given coordinates.";
+        tmessage = "!warp <x> <y> [<z>] | !warp <z> - (!w) change given coordinates.";
         cp->inform(tmessage);
         tmessage = "!add_teleport <x> <y> <z> - Adds a teleportfield from your position to the field <x> <y> <z>.";
         cp->inform(tmessage);
@@ -846,7 +866,7 @@ void World::gmhelp_command(Player *cp) {
     }
 
     if (cp->hasGMRight(gmr_ban)) {
-        tmessage = "!ban <time> [m|h|d] <player> - (!b) Bans the player <player> for <time> [m]inutes/[h]ours/[d]ays.";
+        tmessage = "!ban <time> [<m|h|d>] <player> - (!b) Bans the player <player> for <time> [m]inutes/[h]ours/[d]ays.";
         cp->inform(tmessage);
     }
 

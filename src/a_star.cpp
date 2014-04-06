@@ -5,16 +5,16 @@
  * This file is part of Illarionserver.
  *
  * Illarionserver  is  free  software:  you can redistribute it and/or modify it
- * under the terms of the  GNU  General  Public License as published by the Free
+ * under the terms of the  GNU Affero General Public License as published by the Free
  * Software Foundation, either version 3 of the License, or (at your option) any
  * later version.
  *
  * Illarionserver is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY;  without  even  the  implied  warranty  of  MERCHANTABILITY  or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
  * details.
  *
- * You should have received a copy of the GNU  General Public License along with
+ * You should have received a copy of the GNU Affero General Public License along with
  * Illarionserver. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -200,7 +200,6 @@ bool a_star(const ::position &start_pos, const ::position &goal_pos, std::list<d
     }
 
     typedef graph_traits<world_map_graph>::vertex_descriptor vertex;
-    typedef graph_traits<world_map_graph>::edge_descriptor edge;
 
     vertex start(start_pos.x, start_pos.y);
     vertex goal(goal_pos.x, goal_pos.y);
@@ -228,7 +227,9 @@ bool a_star(const ::position &start_pos, const ::position &goal_pos, std::list<d
 
     astar_ex_visitor visitor(goal);
 
-    auto color = make_shared_array_property_map(num_vertices(g), white_color, index);
+    typedef boost::unordered_map<Position, default_color_type, vertex_hash> color_map_t;
+    color_map_t color_map;
+    boost::associative_property_map<color_map_t> color(color_map);
 
     try {
         astar_search_no_init(g, start, h, visitor, pred_pmap, rank_pmap,

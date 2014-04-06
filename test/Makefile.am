@@ -4,21 +4,24 @@
 #   This file is part of illarionserver.
 #
 #   illarionserver is free software: you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
+#   it under the terms of the GNU Affero General Public License as published by
 #   the Free Software Foundation, either version 3 of the License, or
 #   (at your option) any later version.
 #
 #   illarionserver is distributed in the hope that it will be useful,
 #   but WITHOUT ANY WARRANTY; without even the implied warranty of
 #   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
+#   GNU Affero General Public License for more details.
 #
-#   You should have received a copy of the GNU General Public License
+#   You should have received a copy of the GNU Affero General Public License
 #   along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
 check_LTLIBRARIES = libgmock.la
-check_PROGRAMS = test_binding ItemTest test_container test_binding_item test_binding_scriptitem test_binding_position
+check_PROGRAMS = test_binding ItemTest CharacterContainerTest test_container \
+                 test_binding_item test_binding_scriptitem test_binding_position \
+                 test_binding_longtimeaction test_binding_weatherstruct \
+                 test_binding_character test_map_import
 
 if ENABLE_NEWSCRIPT
 SCRIPT_BASE=binding-new
@@ -43,7 +46,14 @@ test_binding_SOURCES = test_binding.cpp
 test_binding_item_SOURCES = test_binding_item.cpp
 test_binding_scriptitem_SOURCES = test_binding_scriptitem.cpp
 test_binding_position_SOURCES = test_binding_position.cpp
+test_binding_longtimeaction_SOURCES = test_binding_longtimeaction.cpp
+test_binding_weatherstruct_SOURCES = test_binding_weatherstruct.cpp
+test_binding_character_SOURCES = test_binding_character.cpp
 
 ItemTest_SOURCES = ItemTest.cpp
 
+CharacterContainerTest_SOURCES = CharacterContainerTest.cpp
+
 test_container_SOURCES = test_container.cpp
+
+test_map_import_SOURCES = test_map_import.cpp

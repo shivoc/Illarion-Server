@@ -5,16 +5,16 @@
  * This file is part of Illarionserver.
  *
  * Illarionserver  is  free  software:  you can redistribute it and/or modify it
- * under the terms of the  GNU  General  Public License as published by the Free
+ * under the terms of the  GNU Affero General Public License as published by the Free
  * Software Foundation, either version 3 of the License, or (at your option) any
  * later version.
  *
  * Illarionserver is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY;  without  even  the  implied  warranty  of  MERCHANTABILITY  or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
  * details.
  *
- * You should have received a copy of the GNU  General Public License along with
+ * You should have received a copy of the GNU Affero General Public License along with
  * Illarionserver. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -36,10 +36,10 @@
 #include <memory>
 #include <list>
 #include <unordered_map>
+#include <boost/regex.hpp>
 
 #include "NewClientView.hpp"
 #include "CharacterContainer.hpp"
-#include "tvector.hpp"
 #include "SpawnPoint.hpp"
 #include "TableStructs.hpp"
 #include "Character.hpp"
@@ -50,6 +50,7 @@
 #include "Scheduler.hpp"
 #include "character_ptr.hpp"
 
+#include "data/MonsterTable.hpp"
 #include "data/MonsterAttackTable.hpp"
 
 class Player;
@@ -166,12 +167,6 @@ public:
     typedef CharacterContainer<NPC> NPCVECTOR;
 
     /**
-    *  a typedef for holding players which have logged out in a thread save
-    * vector
-    */
-    typedef tvector<Player *> TSPLAYERVECTOR;
-
-    /**
     *holds all active player on the world
     *@todo: change the three vectors @see PLAYERVECTOR, @see MONSTERVECTOR, @see NPCVECTOR so there is only one HARVECTOR
     */
@@ -181,12 +176,6 @@ public:
     *sets a new tile on the map
     */
     void setNextTile(Player *cp, unsigned char tilenumber);
-
-
-    /**
-    *holds all player which have logged out (for deleting them)
-    */
-    //TSPLAYERVECTOR LostPlayers;
 
     /**
     *holds all monsters on the world
@@ -226,7 +215,7 @@ public:
 
     WorldMap::map_t tmap; /**< a temporary pointer to a map, used from different methods @see Map*/
 
-    std::unique_ptr<Scheduler> scheduler = nullptr;/**< a pointer to the scheduler object @see Scheduler*/
+    ClockBasedScheduler<std::chrono::steady_clock> scheduler;
 
     WeatherStruct weather;/**< a struct to the weather @see WeatherStruct */
 
@@ -280,6 +269,8 @@ public:
     void checkPlayers();
 
     void invalidatePlayerDialogs();
+
+    virtual bool getMonsterDefinition(TYPE_OF_CHARACTER_ID type, MonsterStruct &definition);
 
     /**
     *checks all actions of the monsters and updates them
@@ -359,14 +350,6 @@ public:
     */
     void deleteAllLostNPC();
 
-    /**
-    *finds the player with the lowes healthpoints in a given player vector
-    *@param ppvec the vector which should be searched for the player with the lowest hp
-    *@param call by reference, returns the player which was found
-    *@return if true there was a player found otherwise false
-    */
-    bool findPlayerWithLowestHP(const std::vector<Player *> &ppvec, Player *&found);
-
     inline LuaScript *getCurrentScript() const {
         return currentScript;
     }
@@ -398,7 +381,7 @@ public:
     std::list<BlockingObject> LoS(const position &startingpos, const position &endingpos) const;
 
 
-    bool findPlayersInSight(const position &pos, uint8_t range, std::vector<Player *> &ret, Character::face_to direction);
+    bool findTargetsInSight(const position &pos, uint8_t range, std::vector<Character *> &ret, Character::face_to direction);
     Character *findCharacterOnField(const position &pos) const;
     Player *findPlayerOnField(const position &pos) const;
 
@@ -464,24 +447,8 @@ public:
     */
     void updatePlayerView(short int startx, short int endx);
 
-    /**
-    *closes the showcases of different players
-    */
-    void closeShowcasesForContainerPositions();
-
-    /**
-    *loads the world
-    *
-    *@param prefix the name of the world wich should be loaded
-    */
-    void Load(const std::string &prefix);
-
-    /**
-    *saves the world
-    *
-    *@param prefic the name under which the world should be saved
-    */
-    void Save(const std::string &prefix);
+    void Load();
+    void Save();
 
     /**
     *@brief changes one part of the weather and sends the new weather to all players
@@ -586,6 +553,15 @@ public:
     *@param true if the char is moving to the field, false if he is moving away from the field
     */
     void TriggerFieldMove(Character *cc, bool moveto);
+
+    /**
+    * update the character container about the position change
+    *@param cc the character which is moving
+    *@param from the old position
+    *@param to the new position
+    */
+    void moveTo(Character *cc, const position& to);
+
 
     /**
     *moves a player to the direction d
@@ -880,7 +856,7 @@ public:
     void moveItemFromPlayerIntoShowcase(Player *cp, unsigned char cpos, uint8_t showcase, unsigned char pos, Item::number_type count);
     bool pickUpItemFromMap(Player *cp, const position &itemPosition);
     void pickUpAllItemsFromMap(Player *cp);
-    
+
     void sendRemoveItemFromMapToAllVisibleCharacters(const position &itemPosition);
     void sendPutItemOnMapToAllVisibleCharacters(const position &itemPosition, const Item &it);
     void sendSwapItemOnMapToAllVisibleCharacter(TYPE_OF_ITEM_ID id, const position &itemPosition, const Item &it);
@@ -1101,50 +1077,14 @@ private:
     //! IG day of last turntheworld
     int lastTurnIGDay;
 
-    Timer monstertimer = {10};
-    Timer schedulertimer = {1};
-    Timer ScriptTimer = {1};
-    MilTimer monitoringclienttimer = {250};
+    // check spawns every minute
+    Timer monstertimer = {60};
 
     //! das home-Verzeichnis des Servers
     std::string directory;
 
-    //! Zeitpunkt der letzten Alterung (Anzahl der Sekunden seit 1.1.1970)
-    time_t last_age;     //(32 Bit Integer)
-
-    //! Anzahl der Sekunden zwischen den Alterungsschritten
-    static const long gap = 180;
-
-    //! X-Koordinate bei der die Alterung fortgesetzt wird
-    short int nextXtoage;
-
-    //! X-Koordinate nach der die Alterung gestoppt wird
-    short int lastXtoage;
-
-    //! entspricht (Anzahl-1) Spalten, die in einem Durchlauf gealtert werden
-    unsigned short int ammount;
-
-    //! Breite der zu alternden Karte
-    unsigned short int Width;
-
-    //! Hoehe der zu alternden Karte
-    unsigned short int Height;
-
-    //! Sekunden seit der letzten vollstaendigen Alterung der Karte
-    long realgap;
-
-    //! Anzahl der kommpletten Durchlaeufe durch die Karte, seit die altersresistentesten Items gealtert wurden
-    unsigned short int timecount;
-
-    //! ages all world items if necessary
-    // \return true iff any aging was done
-    bool DoAge();
-
-    //! Fhrt die Alterung der Item im Inventory aller Player durch
-    // und schickt ggf. ein Update an die Spieler
-    // \param funct
-    // \see Item.h
-    void AgeInventory();
+    void ageMaps();
+    void ageInventory();
 
     //! das Verzeichnis mit den Skripten
     std::string scriptDir;
@@ -1191,8 +1131,12 @@ private:
 public:
     void ban_command(Player *cp, const std::string &timeplayer);
     void logGMTicket(Player *Player, const std::string &ticket, bool automatic);
+    void checkPlayerImmediateCommands();
+    void addPlayerImmediateActionQueue(Player* player);
 
 private:
+    std::vector<Character *> getTargetsInRange(const position &pos, int range) const;
+    
     bool active_language_command(Player *cp, const std::string &language);
 
     // register any GM commands here...
@@ -1204,10 +1148,18 @@ private:
     // export maps to mapdir/export
     bool exportMaps(Player *cp);
 
+    void ignoreComments(std::ifstream &inputStream);
+
     //! reload all tables
     bool reload_tables(Player *cp);
 
     void version_command(Player *player);
+
+    std::mutex immediatePlayerCommandsMutex;
+    std::queue<Player*> immediatePlayerCommands;
+    const std::string worldName{"Illarion"};
+    const boost::regex tilesFilter{".*\\.tiles\\.txt"};
+    const boost::regex mapFilter{worldName + ".*"};
 };
 
 #endif

@@ -4,36 +4,30 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #include "WorldMap.hpp"
 #include "Map.hpp"
+#include "Logger.hpp"
 
 #include <stdexcept>
 #include <boost/algorithm/string/replace.hpp>
-
-WorldMap::WorldMap() {
-    lowX = 32767;
-    highX = -32768;
-}
+#include <chrono>
 
 void WorldMap::clear() {
     maps.clear();
     world_map.clear();
-
-    lowX = 32767;
-    highX = -32768;
 }
 
 bool WorldMap::mapInRangeOf(const position &upperleft, unsigned short int dx, unsigned short int dy) const {
@@ -86,22 +80,6 @@ bool WorldMap::findAllMapsInRangeOf(char rnorth, char rsouth, char reast, char r
     return found_one;
 }
 
-
-
-bool WorldMap::findAllMapsWithXInRangeOf(short int start, short int end, WorldMap::map_vector_t &ret) const {
-    bool found_one = false;
-    ret.clear();
-
-    for (auto it = maps.begin(); it != maps.end(); ++it) {
-        if (((*it)->Max_X >= start) && ((*it)->Min_X <= end)) {
-            ret.push_back(*it);
-            found_one = true;
-        }
-    }
-
-    return found_one;
-}
-
 bool WorldMap::findMapForPos(const position &pos, WorldMap::map_t &map) const {
     try {
         map = world_map.at(pos);
@@ -119,14 +97,6 @@ bool WorldMap::InsertMap(WorldMap::map_t newMap) {
             if (*it == newMap) {
                 return false;
             }
-        }
-
-        if (newMap->Min_X < lowX) {
-            lowX = newMap->Min_X;
-        }
-
-        if (newMap->Max_X > highX) {
-            highX = newMap->Max_X;
         }
 
         maps.push_back(newMap);
@@ -147,10 +117,22 @@ bool WorldMap::InsertMap(WorldMap::map_t newMap) {
 
 }
 
-void WorldMap::ageContainers() {
-    for (auto it = maps.begin(); it != maps.end(); ++it) {
-        (*it)->ageContainers();
+bool WorldMap::allMapsAged() {
+    using std::chrono::steady_clock;
+    using std::chrono::milliseconds;
+
+    auto startTime = steady_clock::now();
+
+    while (ageIndex < maps.size() && steady_clock::now() - startTime < milliseconds(10)) {
+        maps[ageIndex++]->age();
     }
+
+    if (ageIndex < maps.size()) {
+        return false;
+    }
+
+    ageIndex = 0;
+    return true;
 }
 
 bool WorldMap::exportTo(const std::string &exportDir) const {
@@ -247,7 +229,7 @@ void WorldMap::saveToDisk(const std::string &prefix) const {
 
     } else {
         unsigned short int size = maps.size();
-        std::cout << "Saving " << size << " maps." << std::endl;
+        Logger::info(LogFacility::World) << "Saving " << size << " maps." << Log::end;
         mapinitfile.write((char *) & size, sizeof(size));
         char mname[200];
 

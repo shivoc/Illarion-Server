@@ -5,16 +5,16 @@
  * This file is part of Illarionserver.
  *
  * Illarionserver  is  free  software:  you can redistribute it and/or modify it
- * under the terms of the  GNU  General  Public License as published by the Free
+ * under the terms of the  GNU Affero General Public License as published by the Free
  * Software Foundation, either version 3 of the License, or (at your option) any
  * later version.
  *
  * Illarionserver is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY;  without  even  the  implied  warranty  of  MERCHANTABILITY  or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
  * details.
  *
- * You should have received a copy of the GNU  General Public License along with
+ * You should have received a copy of the GNU Affero General Public License along with
  * Illarionserver. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -24,7 +24,7 @@
 #include "data/ScriptVariablesTable.hpp"
 #include "data/SkillTable.hpp"
 #include "data/QuestTable.hpp"
-#include "data/RaceSizeTable.hpp"
+#include "data/RaceAttributeTable.hpp"
 #include "data/NaturalArmorTable.hpp"
 #include "data/MonsterAttackTable.hpp"
 #include "data/CommonObjectTable.hpp"
@@ -43,7 +43,7 @@ namespace Data {
 extern ScriptVariablesTable ScriptVariables;
 extern SkillTable Skills;
 extern QuestTable Quests;
-extern RaceSizeTable RaceSizes;
+extern RaceAttributeTable RaceAttributes;
 extern NaturalArmorTable NaturalArmors;
 extern MonsterAttackTable MonsterAttacks;
 extern CommonObjectTable CommonItems;

@@ -5,16 +5,16 @@
  *  This file is part of illarionserver.
  *
  *  illarionserver is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
+ *  it under the terms of the GNU Affero General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
  *  illarionserver is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  GNU Affero General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
+ *  You should have received a copy of the GNU Affero General Public License
  *  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -312,14 +312,6 @@ void LuaScript::writeDeprecatedMsg(const std::string &deprecatedEntity) {
     }
 }
 
-bool LuaScript::isTestserver() {
-#ifdef TESTSERVER
-    return true;
-#else
-    return false;
-#endif
-}
-
 luabind::object LuaScript::buildEntrypoint(const std::string &entrypoint) throw(luabind::error) {
     luabind::object obj = luabind::globals(_luaState);
     std::string currentpath = "";
@@ -545,14 +537,13 @@ void LuaScript::init_base_functions() {
         .def_readwrite("thunderstorm", &WeatherStruct::thunderstorm)
         .def_readwrite("temperature", &WeatherStruct::temperature),
         luabind::class_<Character>("Character")
+        .def("isNewPlayer", &Character::isNewPlayer)
         .def("pageGM", &Character::pageGM)
         .def("requestInputDialog", &Character::requestInputDialog, luabind::adopt(_2))
         .def("requestMessageDialog", &Character::requestMessageDialog, luabind::adopt(_2))
         .def("requestMerchantDialog", &Character::requestMerchantDialog, luabind::adopt(_2))
         .def("requestSelectionDialog", &Character::requestSelectionDialog, luabind::adopt(_2))
         .def("requestCraftingDialog", &Character::requestCraftingDialog, luabind::adopt(_2))
-        .def("requestCraftingLookAt", &Character::requestCraftingLookAt)
-        .def("requestCraftingLookAtIngredient", &Character::requestCraftingLookAtIngredient)
         .def("idleTime", &Character::idleTime)
         .def("sendBook", &Character::sendBook)
         .def("updateAppearance", &Character::forceUpdateAppearanceForAll)
@@ -582,7 +573,10 @@ void LuaScript::init_base_functions() {
         .def("inform", inform_lua4)
         .def("introduce", &Character::introducePlayer)
         .def("move", &Character::move)
+        .def("turn", (void(Character:: *)(direction))&Character::turn)
+        .def("turn", (void(Character:: *)(const position &))&Character::turn)
         .def("getNextStepDir", &Character::getNextStepDir, luabind::pure_out_value(_3))
+        .def("setRace", &Character::changeRace)
         .def("getRace", &Character::getRace)
         .def("getFaceTo", &Character::getFaceTo)
         .def("getType", &Character::getType)
@@ -613,6 +607,13 @@ void LuaScript::init_base_functions() {
         .def("getMinorSkill", &Character::getMinorSkill)
         .def("increaseAttrib", &Character::increaseAttrib)
         .def("setAttrib", &Character::setAttrib)
+        .def("isBaseAttributeValid", &Character::isBaseAttribValid)
+        .def("getBaseAttributeSum", &Character::getBaseAttributeSum)
+        .def("getMaxAttributePoints", &Character::getMaxAttributePoints)
+        .def("saveBaseAttributes", &Character::saveBaseAttributes)
+        .def("setBaseAttribute", &Character::setBaseAttrib)
+        .def("getBaseAttribute", &Character::getBaseAttrib)
+        .def("increaseBaseAttribute", &Character::increaseBaseAttrib)
         .def("increaseSkill", &Character::increaseSkill)
         .def("increaseMinorSkill", &Character::increaseMinorSkill)
         .def("setSkill", &Character::setSkill)
@@ -820,9 +821,9 @@ void LuaScript::init_base_functions() {
         .property("rareness", &ItemLookAt::getRareness, &ItemLookAt::setRareness)
         .property("description", &ItemLookAt::getDescription, &ItemLookAt::setDescription)
         .property("craftedBy", &ItemLookAt::getCraftedBy, &ItemLookAt::setCraftedBy)
+        .property("type", &ItemLookAt::getType, &ItemLookAt::setType)
         .property("level", &ItemLookAt::getLevel, &ItemLookAt::setLevel)
-        .property("armorType", &ItemLookAt::getArmorType, &ItemLookAt::setArmorType)
-        .property("weaponType", &ItemLookAt::getWeaponType, &ItemLookAt::setWeaponType)
+        .property("usable", &ItemLookAt::isUsable, &ItemLookAt::setUsable)
         .property("weight", &ItemLookAt::getWeight, &ItemLookAt::setWeight)
         .property("worth", &ItemLookAt::getWorth, &ItemLookAt::setWorth)
         .property("qualityText", &ItemLookAt::getQualityText, &ItemLookAt::setQualityText)
@@ -882,6 +883,12 @@ void LuaScript::init_base_functions() {
         [
             luabind::value("german", static_cast<uint32_t>(Language::german)),
             luabind::value("english", static_cast<uint32_t>(Language::english))
+        ]
+        .enum_("quest_availability")
+        [
+            luabind::value("questAvailable", static_cast<uint32_t>(questAvailable)),
+            luabind::value("questWillBeAvailable", static_cast<uint32_t>(questWillBeAvailable)),
+            luabind::value("questNotAvailable", static_cast<uint32_t>(questNotAvailable))
         ],
         luabind::class_<World>("World")
         .def("LoS", &world_LuaLoS)
@@ -1045,8 +1052,7 @@ void LuaScript::init_base_functions() {
         ],
         luabind::def("isValidChar", &isValid),
         luabind::def("debug", &LuaScript::writeDebugMsg),
-        luabind::def("log", log_lua),
-        luabind::def("isTestserver", &LuaScript::isTestserver)
+        luabind::def("log", log_lua)
     ];
 
     luabind::object globals = luabind::globals(_luaState);

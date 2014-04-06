@@ -5,16 +5,16 @@
  *  This file is part of illarionserver.
  *
  *  illarionserver is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
+ *  it under the terms of the GNU Affero General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
  *  illarionserver is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  GNU Affero General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
+ *  You should have received a copy of the GNU Affero General Public License
  *  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -25,7 +25,6 @@
 #include "Item.hpp"
 #include "Character.hpp"
 
-class Player;
 class World;
 
 class LuaMonsterScript : public LuaScript {
@@ -47,7 +46,7 @@ public:
     bool enemyNear(Character *Monster, Character *enemy);
     void abortRoute(Character *Monster);
     void onSpawn(Character *Monster);
-    bool setTarget(Character *Monster, const std::vector<Player *> &CandidateList, Player *&Target);
+    bool setTarget(Character *Monster, const std::vector<Character *> &CandidateList, Character *&Target);
 
 private:
     LuaMonsterScript(const LuaMonsterScript &);

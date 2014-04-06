@@ -5,16 +5,16 @@
  * This file is part of illarionserver.
  *
  * illarionserver is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * illarionserver is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -36,6 +36,7 @@ enum clientcommands {
     C_USE_TS = 0xFE,
     C_CAST_TS = 0xFD,
     C_ATTACKPLAYER_TS = 0xFA,
+    C_CUSTOMNAME_TS = 0xF7,
     C_INTRODUCE_TS = 0xF6,
     C_SAY_TS = 0xF5,
     C_SHOUT_TS = 0xF4,
@@ -503,6 +504,19 @@ public:
 class IntroduceTS : public BasicClientCommand {
 public:
     IntroduceTS();
+    virtual void decodeData() override;
+    virtual void performAction(Player *player) override;
+    virtual ClientCommandPointer clone() override;
+};
+
+
+class CustomNameTS : public BasicClientCommand {
+private:
+    TYPE_OF_CHARACTER_ID playerId;
+    std::string playerName;
+    
+public:
+    CustomNameTS();
     virtual void decodeData() override;
     virtual void performAction(Player *player) override;
     virtual ClientCommandPointer clone() override;

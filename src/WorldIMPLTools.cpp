@@ -5,16 +5,16 @@
  * This file is part of Illarionserver.
  *
  * Illarionserver  is  free  software:  you can redistribute it and/or modify it
- * under the terms of the  GNU  General  Public License as published by the Free
+ * under the terms of the  GNU Affero General Public License as published by the Free
  * Software Foundation, either version 3 of the License, or (at your option) any
  * later version.
  *
  * Illarionserver is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY;  without  even  the  implied  warranty  of  MERCHANTABILITY  or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
  * details.
  *
- * You should have received a copy of the GNU  General Public License along with
+ * You should have received a copy of the GNU Affero General Public License along with
  * Illarionserver. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -43,8 +43,11 @@
 
 #include "netinterface/protocol/ServerCommands.hpp"
 
+#include "script/LuaWeaponScript.hpp"
+
 extern MonsterTable *MonsterDescriptions;
 extern std::vector<position> contpos;
+extern std::shared_ptr<LuaWeaponScript> standardFightingScript;
 
 void World::deleteAllLostNPC() {
     Field *tempf;
@@ -65,17 +68,17 @@ void World::deleteAllLostNPC() {
     LostNpcs.clear();
 }
 
-bool World::findPlayersInSight(const position &pos, uint8_t range, std::vector<Player *> &ret, Character::face_to direction) {
+bool World::findTargetsInSight(const position &pos, uint8_t range, std::vector<Character *> &ret, Character::face_to direction) {
     bool found = false;
 
-    for (const auto &player : Players.findAllAliveCharactersInRangeOfOnSameMap(pos, range)) {
+    for (const auto &candidate : getTargetsInRange(pos, range)) {
         bool indir = false;
-        const position &playerPos = player->getPosition();
+        const position &candidatePos = candidate->getPosition();
 
         switch (direction) {
         case Character::north:
 
-            if (playerPos.y <= pos.y) {
+            if (candidatePos.y <= pos.y) {
                 indir = true;
             }
 
@@ -83,7 +86,7 @@ bool World::findPlayersInSight(const position &pos, uint8_t range, std::vector<P
 
         case Character::northeast:
 
-            if (playerPos.x - pos.x >= playerPos.y - pos.y) {
+            if (candidatePos.x - pos.x >= candidatePos.y - pos.y) {
                 indir = true;
             }
 
@@ -91,7 +94,7 @@ bool World::findPlayersInSight(const position &pos, uint8_t range, std::vector<P
 
         case Character::east:
 
-            if (playerPos.x >= pos.x) {
+            if (candidatePos.x >= pos.x) {
                 indir = true;
             }
 
@@ -99,7 +102,7 @@ bool World::findPlayersInSight(const position &pos, uint8_t range, std::vector<P
 
         case Character::southeast:
 
-            if (playerPos.y - pos.y >= pos.x - playerPos.x) {
+            if (candidatePos.y - pos.y >= pos.x - candidatePos.x) {
                 indir = true;
             }
 
@@ -107,7 +110,7 @@ bool World::findPlayersInSight(const position &pos, uint8_t range, std::vector<P
 
         case Character::south:
 
-            if (playerPos.y >= pos.y) {
+            if (candidatePos.y >= pos.y) {
                 indir = true;
             }
 
@@ -115,7 +118,7 @@ bool World::findPlayersInSight(const position &pos, uint8_t range, std::vector<P
 
         case Character::southwest:
 
-            if (playerPos.x - pos.x <= playerPos.y - pos.y) {
+            if (candidatePos.x - pos.x <= candidatePos.y - pos.y) {
                 indir = true;
             }
 
@@ -123,7 +126,7 @@ bool World::findPlayersInSight(const position &pos, uint8_t range, std::vector<P
 
         case Character::west:
 
-            if (playerPos.x <= pos.x) {
+            if (candidatePos.x <= pos.x) {
                 indir = true;
             }
 
@@ -131,7 +134,7 @@ bool World::findPlayersInSight(const position &pos, uint8_t range, std::vector<P
 
         case Character::northwest:
 
-            if (playerPos.y - pos.y >= pos.x - playerPos.x) {
+            if (candidatePos.y - pos.y >= pos.x - candidatePos.x) {
                 indir = true;
             }
 
@@ -143,10 +146,10 @@ bool World::findPlayersInSight(const position &pos, uint8_t range, std::vector<P
         }
 
         if (indir) {
-            std::list<BlockingObject> objects = LoS(pos, player->getPosition());
+            std::list<BlockingObject> objects = LoS(pos, candidate->getPosition());
 
             if (objects.empty()) {
-                ret.push_back(player);
+                ret.push_back(candidate);
                 found = true;
             }
         }
@@ -370,23 +373,6 @@ Character *World::findCharacter(TYPE_OF_CHARACTER_ID id) {
 }
 
 
-bool World::findPlayerWithLowestHP(const std::vector<Player *> &ppvec, Player *&found) {
-    found = nullptr;
-
-    for (const auto &player : ppvec) {
-        if (!found) {
-            found = player;
-        } else {
-            if (found->getAttribute(Character::hitpoints) > player->getAttribute(Character::hitpoints)) {
-                found = player;
-            }
-        }
-    }
-
-    return found;
-}
-
-
 void World::takeMonsterAndNPCFromMap() {
     Monsters.for_each([this](Monster *monster) {
         Field *tempf;
@@ -485,19 +471,21 @@ bool World::characterAttacks(Character *cp) {
                         }
                     } else {
                         //check for turning into attackackers direction
-                        std::vector<Player *>temp;
+                        std::vector<Character *>temp;
                         temp.clear();
-                        findPlayersInSight(temppl->getPosition(), static_cast<uint8_t>(9), temp, temppl->getFaceTo());
+                        findTargetsInSight(temppl->getPosition(), static_cast<uint8_t>(9), temp, temppl->getFaceTo());
 
                         //add the current attacker to the list
                         if (cp->getType() == Character::player) {
                             temp.push_back(dynamic_cast<Player *>(cp));
                         }
 
-                        Player *foundPl;
+                        if (!temp.empty()) {
+                            Character *target = standardFightingScript->setTarget(temppl, temp);
 
-                        if (!temp.empty() && findPlayerWithLowestHP(temp, foundPl)) {
-                            temppl->turn(foundPl->getPosition());
+                            if (target) {
+                                temppl->turn(target->getPosition());
+                            }
                         }
 
                     }
@@ -680,15 +668,6 @@ int World::getItemAttrib(const std::string &s, TYPE_OF_ITEM_ID ItemID) {
 }
 
 
-void World::closeShowcasesForContainerPositions() {
-    for (const auto &pos : contpos) {
-        for (const auto &player : Players.findAllCharactersInMaxRangeOf(pos, 1)) {
-            player->closeAllShowcasesOfMapContainers();
-        }
-    }
-}
-
-
 void World::updatePlayerView(short int startx, short int endx) {
     std::vector<Player *> temp;
 
@@ -702,64 +681,21 @@ void World::updatePlayerView(short int startx, short int endx) {
 }
 
 
-bool World::DoAge() {
-
-    if (nextXtoage >= maps.getHighX()) {
-        // auf allen Karten alles abgearbeitet
-        time_t temp = time(nullptr);      // liefert die Sekunden seit dem 1.1.1970
-        realgap = temp - last_age;
-
-        // Zeit f�r neuen Durchlauf der Karte
-        if (realgap >= gap) {
-#ifdef World_DEBUG
-            std::cout << "World.DoAge: Karte gealtert nach " << realgap << " Sekunden\n";
-#endif
-            ++timecount;
-
-            last_age = temp;
-            nextXtoage = maps.getLowX();
-
-            AgeInventory();
-            maps.ageContainers();
-        } else {
-            return false;
-        }
+void World::ageMaps() {
+    if (not maps.allMapsAged()) {
+        scheduler.addOneshotTask([&] { ageMaps(); }, std::chrono::seconds(1), "age_maps");
     }
-
-    // noch nicht die gesamte Karte durchlaufen ->
-    // restliche Streifen bearbeiten
-    lastXtoage = nextXtoage + ammount - 1;
-
-    if (lastXtoage >= maps.getHighX()) {
-        lastXtoage = maps.getHighX();
-    }
-
-    WorldMap::map_vector_t mapsToage;
-
-    if (maps.findAllMapsWithXInRangeOf(nextXtoage, lastXtoage, mapsToage)) {
-        for (const auto &map : mapsToage) {
-            map->ageItemsInHorizontalRange(nextXtoage, lastXtoage);
-        }
-
-        closeShowcasesForContainerPositions();
-        contpos.clear();
-    }
-
-    nextXtoage = lastXtoage + 1;
-
-    return true;
-
 }
 
 
-void World::AgeInventory() {
+void World::ageInventory() {
     Players.for_each(&Player::ageInventory);
     Monsters.for_each(&Monster::ageInventory);
 }
 
 
-void World::Save(const std::string &prefix) {
-    std::string path = directory + std::string(MAPDIR) + prefix;
+void World::Save() {
+    std::string path = directory + std::string(MAPDIR) + worldName;
 
     maps.saveToDisk(path);
 
@@ -789,8 +725,8 @@ void World::Save(const std::string &prefix) {
 }
 
 
-void World::Load(const std::string &prefix) {
-    std::string path = directory + std::string(MAPDIR) + prefix;
+void World::Load() {
+    std::string path = directory + std::string(MAPDIR) + worldName;
 
     std::ifstream mapinitfile((path + "_initmaps").c_str(), std::ios::binary | std::ios::in);
 
@@ -798,11 +734,13 @@ void World::Load(const std::string &prefix) {
         Logger::error(LogFacility::World) << "Error while loading maps: could not open " << (path + "_initmaps") << Log::end;
         Logger::info(LogFacility::World) << "trying to import maps" << Log::end;
         load_maps();
+        Logger::info(LogFacility::World) << "Saving World..." << Log::end;
+        Save();
         return;
     } else {
         unsigned short int size;
         mapinitfile.read((char *) & size, sizeof(size));
-        Logger::info(LogFacility::World) << "Loading " << size << " maps" << Log::end;
+        Logger::info(LogFacility::World) << "Loading " << size << " maps." << Log::end;
 
         short int tZ_Level;
         short int tMin_X;

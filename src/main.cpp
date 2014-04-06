@@ -5,16 +5,16 @@
  *  This file is part of illarionserver.
  *
  *  illarionserver is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
+ *  it under the terms of the GNU Affero General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
  *  illarionserver is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  GNU Affero General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
+ *  You should have received a copy of the GNU Affero General Public License
  *  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -57,6 +57,8 @@
 
 #include "script/LuaLoginScript.hpp"
 #include "script/LuaReloadScript.hpp"
+
+#include "Statistics.hpp"
 
 extern std::shared_ptr<LuaLoginScript>loginScript;
 extern ScriptVariablesTable *scriptVariables;
@@ -120,7 +122,7 @@ int main(int argc, char *argv[]) {
     Data::activateTables();
     loadData();
 
-    world->Load("Illarion");
+    world->Load();
 
     Data::reloadScripts();
 
@@ -128,9 +130,6 @@ int main(int argc, char *argv[]) {
     PlayerManager::get().activate();
     Logger::info(LogFacility::Other) << "PlayerManager activated" << Log::end;
     PlayerManager::TPLAYERVECTOR &newplayers = PlayerManager::get().getLogInPlayers();
-    timespec stime;
-    stime.tv_sec = 0;
-    stime.tv_nsec = 25000000;
     world->initNPC();
 
     try {
@@ -147,9 +146,10 @@ int main(int argc, char *argv[]) {
 
     running = true;
 
+    using namespace Statistic;
+    Statistics::getInstance().startTimer("cycle");
+
     while (running) {
-        // Ausgaben auf std::cout in die Datei schreiben
-        std::cout.flush();
         // make sure we don't block the server with processing new players...
         int new_players_processed = 0;
 
@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
         while (!newplayers.empty() && new_players_processed < MAXPLAYERSPROCESSED) {
 
             new_players_processed++;
-            Player *newPlayer = newplayers.non_block_pop_front();
+            Player *newPlayer = newplayers.pop_front();
 
             if (newPlayer) {
                 login_save(newPlayer);
@@ -173,7 +173,7 @@ int main(int argc, char *argv[]) {
                     } catch (Player::LogoutException &e) {
                         ServerCommandPointer cmd = std::make_shared<LogOutTC>(e.getReason());
                         newPlayer->Connection->shutdownSend(cmd);
-                        PlayerManager::get().getLogOutPlayers().non_block_push_back(newPlayer);
+                        PlayerManager::get().getLogOutPlayers().push_back(newPlayer);
                     }
                 }
             } else {
@@ -182,9 +182,10 @@ int main(int argc, char *argv[]) {
 
         } // get new players
 
-        // Eingaben der Player abarbeiten und die Karte altern
-        world->turntheworld();
-        nanosleep(&stime, nullptr);
+        // run scheduler until next task or for 25ms
+	world->scheduler.run_once(std::chrono::seconds(1));
+	world->checkPlayerImmediateCommands();
+        Statistics::getInstance().stopTimer("cycle");
     }
 
 
@@ -192,21 +193,17 @@ int main(int argc, char *argv[]) {
 
     Data::ScriptVariables.save();
     Logger::info(LogFacility::Other) << "ScriptVariables saved!" << Log::end;
+
     world->forceLogoutOfAllPlayers();
-
-    //saving all players which where forced logged out.
-    PlayerManager::get().saveAll();
-
+    PlayerManager::get().stop();
     world->takeMonsterAndNPCFromMap();
 
-    Logger::info(LogFacility::Other) << "saving maps" << Log::end;
-    world->Save("Illarion");
+    world->Save();
     delete world;
     world = nullptr;
 
     reset_sighandlers();
 
-    time(&starttime);
     Logger::info(LogFacility::Other) << "Illarion has been successfully terminated! " << Log::end;
 
     return EXIT_SUCCESS;

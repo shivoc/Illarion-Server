@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -79,8 +79,7 @@ public:
     // \return true falls die x,y Koordinate existiert, false sonst
     bool PutCFieldAt(Field &fi, short int x, short int y);
 
-    void ageItemsInHorizontalRange(short int xstart, short int xend);
-    void ageContainers();
+    void age();
 
     //! setzt das Flag welches angibt, ob ein Spieler auf dem Feld ist auf t
     // \param x X-Koordinate
@@ -173,6 +172,10 @@ public:
     inline   short int Conv_To_X(unsigned short int x);
 
     inline short int Conv_To_Y(unsigned short int y);
+
+private:
+    void ageItems();
+    void ageContainers();
 };
 
 #endif

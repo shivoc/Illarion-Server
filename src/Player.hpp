@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -26,6 +26,7 @@
 #include <memory>
 #include <string>
 #include <set>
+#include <queue>
 #include <unordered_set>
 #include <unordered_map>
 
@@ -105,6 +106,7 @@ public:
     virtual std::string to_string() const override;
 
     void workoutCommands();
+    void checkFightMode();
 
     //! definiert eine "Zweiseitige Warteschlange" vom Typ unsigned char
     //typedef deque<unsigned char> BYTEDEQUE;
@@ -121,6 +123,8 @@ public:
 
     //! E-Mail
     std::string email;
+
+    bool newPlayer = false;
 
     //! Zeit (in Sekunden) die der Spieler insgesamt online war
     unsigned long int onlinetime;
@@ -157,8 +161,17 @@ public:
 private:
     std::set<uint32_t> visibleChars;
     std::unordered_set<TYPE_OF_CHARACTER_ID> knownPlayers;
+    std::unordered_map<TYPE_OF_CHARACTER_ID, std::string> namedPlayers;
+    typedef std::queue<ClientCommandPointer> CLIENTCOMMANDLIST;
+    CLIENTCOMMANDLIST immediateCommands;
+    CLIENTCOMMANDLIST queuedCommands;
+    std::mutex commandMutex;
 
 public:
+    void receiveCommand(ClientCommandPointer cmd);
+
+    virtual bool isNewPlayer() const override;
+    
     const std::string &nls(const std::string &german, const std::string &english) const;
 
     virtual void setAlive(bool alive) override;
@@ -419,6 +432,8 @@ public:
 
     unsigned short int setSkill(TYPE_OF_SKILL_ID skill, short int major, short int minor);
 
+    virtual bool saveBaseAttributes() override;
+
     //! sendet ein Attributupdate an den Client
     // \param name der Name des Attributs
     // \param value der Wert des Attributs
@@ -467,6 +482,7 @@ public:
     virtual void inform(const std::string &german, const std::string &english, informType type = informServer) const override;
 
     virtual void turn(direction dir) override;
+    virtual void turn(const position &posi) override;
 
     // player heard something
     virtual void receiveText(talk_type tt, const std::string &message, Character *cc) override;
@@ -474,6 +490,8 @@ public:
     bool knows(Player *player) const;
     void getToKnow(Player *player);
     virtual void introducePlayer(Player *player) override;
+    void namePlayer(TYPE_OF_CHARACTER_ID playerId, const std::string &name);
+    std::string getCustomNameOf(Player *player) const;
 
     // Move the Player
     using Character::move;
@@ -489,13 +507,10 @@ public:
     void openDepot(uint16_t depotid);
 
     virtual void setQuestProgress(TYPE_OF_QUEST_ID questid, TYPE_OF_QUESTSTATUS progress) override;
+    void sendAvailableQuests();
     void sendQuestProgress(TYPE_OF_QUEST_ID questId, TYPE_OF_QUESTSTATUS progress);
     void sendCompleteQuestProgress();
     virtual TYPE_OF_QUESTSTATUS getQuestProgress(TYPE_OF_QUEST_ID questid, int &time) const override;
-
-#ifdef _PLAYER_AUTO_SAVE_
-    void checkSave();
-#endif
 
 private:
     void handleWarp();
@@ -564,10 +579,6 @@ private:
 
     Language _player_language;
 
-#ifdef _PLAYER_AUTO_SAVE_
-    Timer *saveTimer;  //save every 10 minutes 600 sec's
-#endif
-
     // Status of the player, Okay, waiting authroization, jailed, banned, etc..
     unsigned char status;
 
@@ -617,6 +628,10 @@ private:
     unsigned int dialogCounter;
     typedef std::unordered_map<unsigned int, std::shared_ptr<Dialog>> DialogMap;
     DialogMap dialogs;
+
+    typedef std::pair<TYPE_OF_QUESTSTATUS, int> QuestStatusTimePair;
+    typedef std::unordered_map<TYPE_OF_QUEST_ID, QuestStatusTimePair> QuestMap;
+    QuestMap quests;
 };
 
 #endif

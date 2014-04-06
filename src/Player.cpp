@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "Player.hpp"
@@ -32,7 +32,6 @@
 #include "Random.hpp"
 #include "SchedulerTaskClasses.hpp"
 #include "Logger.hpp"
-#include "tvector.hpp"
 #include "PlayerManager.hpp"
 #include "MonitoringClients.hpp"
 #include "Config.hpp"
@@ -57,6 +56,7 @@
 #include "db/SelectQuery.hpp"
 #include "db/UpdateQuery.hpp"
 #include "db/Result.hpp"
+#include "db/SchemaHelper.hpp"
 
 #include "dialog/InputDialog.hpp"
 #include "dialog/MessageDialog.hpp"
@@ -74,7 +74,7 @@ extern std::shared_ptr<LuaDepotScript>depotScript;
 
 Player::Player(std::shared_ptr<NetInterface> newConnection) throw(Player::LogoutException)
     : Character(), onlinetime(0), Connection(newConnection), turtleActive(false),
-      clippingActive(true), admin(false), questWriteLock(false), dialogCounter(0) {
+      clippingActive(true), admin(false), questWriteLock(false), monitoringClient(false), dialogCounter(0) {
 #ifdef Player_DEBUG
     std::cout << "Player Konstruktor Start" << std::endl;
 #endif
@@ -85,40 +85,13 @@ Player::Player(std::shared_ptr<NetInterface> newConnection) throw(Player::Logout
     SetMovement(walk);
 
     time(&lastaction);
+    time(&lastkeepalive);
 
     ltAction = std::make_unique<LongTimeAction>(this, _world);
 
-    // first check if we have a valid client
-
-    ClientCommandPointer cmd = Connection->getCommand();
-
-    if (!cmd || cmd->getDefinitionByte() != C_LOGIN_TS) {
-        throw LogoutException(UNSTABLECONNECTION);
-    }
-
-    const auto loginCommand = std::dynamic_pointer_cast<LoginCommandTS>(cmd);
-    unsigned short int clientversion = loginCommand->getClientVersion();
+    const auto loginCommand = Connection->getLoginData();
     setName(loginCommand->getLoginName());
     pw = loginCommand->getPassword();
-    unsigned short acceptVersion = Config::instance().clientversion;
-    monitoringClient = false;
-
-    if (clientversion == 200) {
-        monitoringClient = true;
-    } else if (clientversion != acceptVersion) {
-        Logger::error(LogFacility::Player) << to_string() << " tried to login with an old client (version " << clientversion << ") but version " << acceptVersion << " is required" << Log::end;
-        throw LogoutException(OLDCLIENT);
-    }
-
-    if (getName() == "" || pw == "") {
-        throw LogoutException(WRONGPWD);
-    }
-
-    // player already online? if we don't use the monitoring client
-    if (!monitoringClient && (_world->Players.find(getName()) || PlayerManager::get().findPlayer(getName()))) {
-        Logger::alert(LogFacility::Player) << to_string() << " tried to login twice from ip: " << Connection->getIPAdress() << Log::end;
-        throw LogoutException(DOUBLEPLAYER);
-    }
 
     check_logindata();
 
@@ -142,6 +115,7 @@ Player::Player(std::shared_ptr<NetInterface> newConnection) throw(Player::Logout
 
     last_ip = Connection->getIPAdress();
 
+#if 0 // TODO move code to BBIWI specific class
     // we don't want to load more if we have a monitoring client
     if (monitoringClient) {
         ServerCommandPointer cmd = std::make_shared<BBLoginSuccessfulTC>();
@@ -149,6 +123,7 @@ Player::Player(std::shared_ptr<NetInterface> newConnection) throw(Player::Logout
         Logger::info(LogFacility::Admin) << to_string() << " connects with monitoring client" << Log::end;
         return;
     }
+#endif
 
     // now load inventory...
     if (!load()) {
@@ -248,6 +223,9 @@ void Player::login() throw(Player::LogoutException) {
     time(&logintime);
     time(&lastkeepalive);
     time(&lastsavetime);
+
+    // start processing client commands
+    Connection->activate(this);
 }
 
 unsigned short int Player::getScreenRange() const {
@@ -718,6 +696,57 @@ void Player::sendMagicFlags(int type) {
 }
 
 
+bool Player::saveBaseAttributes() {
+    if (getBaseAttributeSum() != getMaxAttributePoints()) {
+        Database::SelectQuery query;
+        query.addColumn("player", "ply_strength");
+        query.addColumn("player", "ply_dexterity");
+        query.addColumn("player", "ply_constitution");
+        query.addColumn("player", "ply_agility");
+        query.addColumn("player", "ply_intelligence");
+        query.addColumn("player", "ply_perception");
+        query.addColumn("player", "ply_willpower");
+        query.addColumn("player", "ply_essence");
+        query.addEqualCondition<TYPE_OF_CHARACTER_ID>("player", "ply_playerid", getId());
+        query.addServerTable("player");
+
+        auto result = query.execute();
+
+        if (result.empty()) {
+            throw LogoutException(NOCHARACTERFOUND);
+        }
+
+        auto row = result.front();
+
+        setBaseAttribute(Character::strength, row["ply_strength"].as<uint16_t>());
+        setBaseAttribute(Character::dexterity, row["ply_dexterity"].as<uint16_t>());
+        setBaseAttribute(Character::constitution, row["ply_constitution"].as<uint16_t>());
+        setBaseAttribute(Character::agility, row["ply_agility"].as<uint16_t>());
+        setBaseAttribute(Character::intelligence, row["ply_intelligence"].as<uint16_t>());
+        setBaseAttribute(Character::perception, row["ply_perception"].as<uint16_t>());
+        setBaseAttribute(Character::willpower, row["ply_willpower"].as<uint16_t>());
+        setBaseAttribute(Character::essence, row["ply_essence"].as<uint16_t>());
+
+        return false;
+    }
+
+    Database::UpdateQuery query;
+    query.addAssignColumn<uint16_t>("ply_agility", getBaseAttribute(Character::agility));
+    query.addAssignColumn<uint16_t>("ply_constitution", getBaseAttribute(Character::constitution));
+    query.addAssignColumn<uint16_t>("ply_dexterity", getBaseAttribute(Character::dexterity));
+    query.addAssignColumn<uint16_t>("ply_essence", getBaseAttribute(Character::essence));
+    query.addAssignColumn<uint16_t>("ply_intelligence", getBaseAttribute(Character::intelligence));
+    query.addAssignColumn<uint16_t>("ply_perception", getBaseAttribute(Character::perception));
+    query.addAssignColumn<uint16_t>("ply_strength", getBaseAttribute(Character::strength));
+    query.addAssignColumn<uint16_t>("ply_willpower", getBaseAttribute(Character::willpower));
+    query.addEqualCondition<TYPE_OF_CHARACTER_ID>("player", "ply_playerid", getId());
+    query.addServerTable("player");
+    query.execute();
+
+    return true;
+}
+
+
 void Player::sendAttrib(Character::attributeIndex attribute) {
     auto value = getAttribute(attribute);
 
@@ -956,6 +985,18 @@ void Player::check_logindata() throw(Player::LogoutException) {
             throw LogoutException(WRONGPWD);
         }
 
+        std::stringstream newPlayerQueryString;
+        newPlayerQueryString << "SET search_path TO "<< Database::SchemaHelper::getServerSchema() << "; SELECT is_new_player(" << account_id << ");";
+        Database::Query newPlayerQuery(connection, newPlayerQueryString.str());
+        auto newPlayerResult = newPlayerQuery.execute();
+        
+        if (!newPlayerResult.empty()) {
+            const auto &row = newPlayerResult.front();
+            newPlayer = row["is_new_player"].as<bool>(false);
+        }
+
+        std::cout << *this << " is " << (newPlayer ? "new" : "not new") << std::endl;
+
         Database::SelectQuery playerQuery(connection);
         playerQuery.addColumn("player", "ply_posx");
         playerQuery.addColumn("player", "ply_posy");
@@ -1063,6 +1104,8 @@ struct container_struct {
 bool Player::save() throw() {
     using namespace Database;
 
+    Logger::info(LogFacility::Player) << "Saving " << to_string() << Log::end;
+
     PConnection connection = ConnectionManager::getInstance().getConnection();
 
     try {
@@ -1087,6 +1130,29 @@ bool Player::save() throw() {
             }
 
             introductionQuery.execute();
+        }
+
+        {
+            DeleteQuery namingQuery(connection);
+            namingQuery.addEqualCondition<TYPE_OF_CHARACTER_ID>("naming", "name_player", getId());
+            namingQuery.addServerTable("naming");
+            namingQuery.execute();
+        }
+
+        {
+            InsertQuery namingQuery(connection);
+            const InsertQuery::columnIndex playerColumn = namingQuery.addColumn("name_player");
+            const InsertQuery::columnIndex namedPlayerColumn = namingQuery.addColumn("name_named_player");
+            const InsertQuery::columnIndex playerNameColumn = namingQuery.addColumn("name_player_name");
+            namingQuery.addServerTable("naming");
+
+            for (const auto &playerAndName : namedPlayers) {
+                namingQuery.addValue<TYPE_OF_CHARACTER_ID>(playerColumn, getId());
+                namingQuery.addValue<TYPE_OF_CHARACTER_ID>(namedPlayerColumn, playerAndName.first);
+                namingQuery.addValue<std::string>(playerNameColumn, playerAndName.second);
+            }
+
+            namingQuery.execute();
         }
 
         time(&lastsavetime);
@@ -1196,8 +1262,6 @@ bool Player::save() throw() {
                 containers.push_back(container_struct(depot.second, 0, depot.first));
             }
 
-            int linenumber = 0;
-
             InsertQuery itemsQuery(connection);
             const InsertQuery::columnIndex itemsPlyIdColumn = itemsQuery.addColumn("pit_playerid");
             const InsertQuery::columnIndex itemsLineColumn = itemsQuery.addColumn("pit_linenumber");
@@ -1217,14 +1281,18 @@ bool Player::save() throw() {
             const InsertQuery::columnIndex dataValueColumn = dataQuery.addColumn("idv_value");
             dataQuery.setServerTable("playeritem_datavalues");
 
+            int linenumber = 0;
+
             // save all items directly on the body...
             for (int thisItemSlot = 0; thisItemSlot < MAX_BODY_ITEMS + MAX_BELT_SLOTS; ++thisItemSlot) {
-                //if there is no item on this place, set all other values to 0
+                ++linenumber;
+
+                //if there is no item on this place, do not save it
                 if (characterItems[ thisItemSlot ].getId() == 0) {
-                    characterItems[ thisItemSlot ].reset();
+                    continue;
                 }
 
-                itemsQuery.addValue<int32_t>(itemsLineColumn, (int32_t)(++linenumber));
+                itemsQuery.addValue<int32_t>(itemsLineColumn, linenumber);
                 itemsQuery.addValue<int16_t>(itemsContainerColumn, 0);
                 itemsQuery.addValue<int32_t>(itemsDepotColumn, 0);
                 itemsQuery.addValue<TYPE_OF_ITEM_ID>(itemsItmIdColumn, characterItems[thisItemSlot].getId());
@@ -1235,7 +1303,7 @@ bool Player::save() throw() {
 
                 for (auto it = characterItems[ thisItemSlot ].getDataBegin(); it != characterItems[ thisItemSlot ].getDataEnd(); ++it) {
                     if (it->second.length() > 0) {
-                        dataQuery.addValue<int32_t>(dataLineColumn, (int32_t) linenumber);
+                        dataQuery.addValue<int32_t>(dataLineColumn, linenumber);
                         dataQuery.addValue<std::string>(dataKeyColumn, it->first);
                         dataQuery.addValue<std::string>(dataValueColumn, it->second);
                     }
@@ -1251,7 +1319,7 @@ bool Player::save() throw() {
 
                 for (const auto &slotAndItem : containedItems) {
                     const Item &item = slotAndItem.second;
-                    itemsQuery.addValue<int32_t>(itemsLineColumn, (int32_t)(++linenumber));
+                    itemsQuery.addValue<int32_t>(itemsLineColumn, ++linenumber);
                     itemsQuery.addValue<int16_t>(itemsContainerColumn, (int16_t) currentContainerStruct.id);
                     itemsQuery.addValue<int32_t>(itemsDepotColumn, (int32_t) currentContainerStruct.depotid);
                     itemsQuery.addValue<TYPE_OF_ITEM_ID>(itemsItmIdColumn, item.getId());
@@ -1261,7 +1329,7 @@ bool Player::save() throw() {
                     itemsQuery.addValue<TYPE_OF_CONTAINERSLOTS>(itemsSlotColumn, slotAndItem.first);
 
                     for (auto it = item.getDataBegin(); it != item.getDataEnd(); ++it) {
-                        dataQuery.addValue<int32_t>(dataLineColumn, (int32_t) linenumber);
+                        dataQuery.addValue<int32_t>(dataLineColumn, linenumber);
                         dataQuery.addValue<std::string>(dataKeyColumn, it->first);
                         dataQuery.addValue<std::string>(dataValueColumn, it->second);
                     }
@@ -1339,6 +1407,24 @@ bool Player::load() throw() {
 
         {
             SelectQuery query;
+            query.addColumn("questprogress", "qpg_questid");
+            query.addColumn("questprogress", "qpg_progress");
+            query.addColumn("questprogress", "qpg_time");
+            query.addEqualCondition<TYPE_OF_CHARACTER_ID>("questprogress", "qpg_userid", getId());
+            query.addServerTable("questprogress");
+
+            Result results = query.execute();
+
+            for (const auto &row : results) {
+                const auto questId = row["qpg_questid"].as<TYPE_OF_QUEST_ID>();
+                const auto questStatus = row["qpg_progress"].as<TYPE_OF_QUESTSTATUS>(0);
+                const auto questTime = row["qpg_time"].as<int>();
+                quests[questId] = std::make_pair(questStatus, questTime);
+            }
+        }
+
+        {
+            SelectQuery query;
             query.addColumn("introduction", "intro_known_player");
             query.addEqualCondition<TYPE_OF_CHARACTER_ID>("introduction", "intro_player", getId());
             query.addServerTable("introduction");
@@ -1347,6 +1433,21 @@ bool Player::load() throw() {
 
             for (const auto &row : results) {
                 knownPlayers.insert(row["intro_known_player"].as<TYPE_OF_CHARACTER_ID>());
+            }
+        }
+
+        {
+            SelectQuery query;
+            query.addColumn("naming", "name_named_player");
+            query.addColumn("naming", "name_player_name");
+            query.addEqualCondition<TYPE_OF_CHARACTER_ID>("naming", "name_player", getId());
+            query.addServerTable("naming");
+
+            Result results = query.execute();
+
+            for (const auto &row : results) {
+                namedPlayers.emplace(row["name_named_player"].as<TYPE_OF_CHARACTER_ID>(),
+                                     row["name_player_name"].as<std::string>());
             }
         }
 
@@ -1620,6 +1721,11 @@ void Player::turn(direction dir) {
     increaseActionPoints(-P_SPIN_COST);
 }
 
+void Player::turn(const position &pos) {
+    Character::turn(pos);
+    increaseActionPoints(-P_SPIN_COST);
+}
+
 void Player::receiveText(talk_type tt, const std::string &message, Character *cc) {
     ServerCommandPointer cmd = std::make_shared<SayTC>(cc->getPosition(), message);
 
@@ -1655,6 +1761,28 @@ void Player::introducePlayer(Player *player) {
 
     ServerCommandPointer cmd = std::make_shared<IntroduceTC>(player->getId(), player->getName());
     Connection->addCommand(cmd);
+}
+
+void Player::namePlayer(TYPE_OF_CHARACTER_ID playerId, const std::string &name) {
+    const Character *character = World::get()->findCharacter(playerId);
+
+    if (character->getType() == player && this->getId() != playerId) {
+        if (name.length() > 0) {
+            namedPlayers[playerId] = name;
+        } else {
+            namedPlayers.erase(playerId);
+        }
+    }
+}
+
+std::string Player::getCustomNameOf(Player *player) const {
+    const auto it = namedPlayers.find(player->getId());
+
+    if (it != namedPlayers.cend()) {
+        return it->second;
+    } else {
+        return {};
+    }
 }
 
 void Player::deleteAllSkills() {
@@ -1995,6 +2123,7 @@ void Player::setQuestProgress(TYPE_OF_QUEST_ID questid, TYPE_OF_QUESTSTATUS prog
     questWriteLock = true;
     using namespace Database;
     PConnection connection = ConnectionManager::getInstance().getConnection();
+    int timeNow = int(time(nullptr));
 
     try {
         connection->beginTransaction();
@@ -2007,7 +2136,8 @@ void Player::setQuestProgress(TYPE_OF_QUEST_ID questid, TYPE_OF_QUESTSTATUS prog
 
         Result results = query.execute();
 
-        save();
+        // TODO: Save player from dedicated thread only, see PlayerManager
+        //save();
 
         if (results.empty()) {
             InsertQuery insQuery;
@@ -2020,13 +2150,13 @@ void Player::setQuestProgress(TYPE_OF_QUEST_ID questid, TYPE_OF_QUESTSTATUS prog
             insQuery.addValue<TYPE_OF_CHARACTER_ID>(userColumn, getId());
             insQuery.addValue<TYPE_OF_QUEST_ID>(questColumn, questid);
             insQuery.addValue<TYPE_OF_QUESTSTATUS>(progressColumn, progress);
-            insQuery.addValue<int>(timeColumn, int(time(nullptr)));
+            insQuery.addValue<int>(timeColumn, timeNow);
 
             insQuery.execute();
         } else {
             UpdateQuery updQuery;
             updQuery.addAssignColumn<TYPE_OF_QUESTSTATUS>("qpg_progress", progress);
-            updQuery.addAssignColumn<int>("qpg_time", int(time(nullptr)));
+            updQuery.addAssignColumn<int>("qpg_time", timeNow);
             updQuery.addEqualCondition<TYPE_OF_CHARACTER_ID>("questprogress", "qpg_userid", getId());
             updQuery.addEqualCondition<TYPE_OF_QUEST_ID>("questprogress", "qpg_questid", questid);
             updQuery.setServerTable("questprogress");
@@ -2042,8 +2172,34 @@ void Player::setQuestProgress(TYPE_OF_QUEST_ID questid, TYPE_OF_QUESTSTATUS prog
         return;
     }
 
+    quests[questid] = std::make_pair(progress, timeNow);
     sendQuestProgress(questid, progress);
     questWriteLock = false;
+}
+
+void Player::sendAvailableQuests() {
+    const auto quests = Data::Quests.getQuestsInRange(getPosition(), getScreenRange());
+    int someTime;
+    std::vector<position> questsAvailableNow;
+    std::vector<position> questsAvailableSoon;
+
+    for (const auto &quest : quests) {
+        const TYPE_OF_QUEST_ID questId = quest.first;
+        const TYPE_OF_QUESTSTATUS questStatus = getQuestProgress(questId, someTime);
+        const position &start = quest.second;
+        const QuestAvailability availability = Data::Quests.script(questId)->available(this, questStatus);
+
+        if ((availability == questDefaultAvailable && questStatus == 0) || availability == questAvailable) {
+            questsAvailableNow.push_back(start);
+        } else if (availability == questWillBeAvailable) {
+            questsAvailableSoon.push_back(start);
+        }
+    }
+
+    if (questsAvailableNow.size() > 0 || questsAvailableSoon.size() > 0) {
+        ServerCommandPointer cmd = std::make_shared<AvailableQuestsTC>(questsAvailableNow, questsAvailableSoon);
+        Connection->addCommand(cmd);
+    }
 }
 
 void Player::sendQuestProgress(TYPE_OF_QUEST_ID questId, TYPE_OF_QUESTSTATUS progress) {
@@ -2073,55 +2229,23 @@ void Player::sendQuestProgress(TYPE_OF_QUEST_ID questId, TYPE_OF_QUESTSTATUS pro
 }
 
 void Player::sendCompleteQuestProgress() {
-    try {
-        using namespace Database;
-
-        SelectQuery query;
-        query.addColumn("questprogress", "qpg_questid");
-        query.addColumn("questprogress", "qpg_progress");
-        query.addEqualCondition<TYPE_OF_CHARACTER_ID>("questprogress", "qpg_userid", getId());
-        query.addServerTable("questprogress");
-
-        Result results = query.execute();
-
-        for (const auto &row : results) {
-            TYPE_OF_QUEST_ID questId = row["qpg_questid"].as<TYPE_OF_QUEST_ID>();
-            TYPE_OF_QUESTSTATUS progress = row["qpg_progress"].as<TYPE_OF_QUESTSTATUS>();
-            sendQuestProgress(questId, progress);
-        }
-    } catch (std::exception &e) {
-        std::cerr<<"exception: "<<e.what()<<" while getting complete quest progress!"<<std::endl;
+    for (const auto &quest : quests) {
+        TYPE_OF_QUEST_ID questId = quest.first;
+        TYPE_OF_QUESTSTATUS progress = quest.second.first;
+        sendQuestProgress(questId, progress);
     }
 }
 
 TYPE_OF_QUESTSTATUS Player::getQuestProgress(TYPE_OF_QUEST_ID questid, int &time) const {
-    try {
-        using namespace Database;
+    const auto it = quests.find(questid);
 
-        SelectQuery query;
-        query.addColumn("questprogress", "qpg_progress");
-        query.addColumn("questprogress", "qpg_time");
-        query.addEqualCondition<TYPE_OF_CHARACTER_ID>("questprogress", "qpg_userid", getId());
-        query.addEqualCondition<TYPE_OF_QUEST_ID>("questprogress", "qpg_questid", questid);
-        query.addServerTable("questprogress");
-
-        Result results = query.execute();
-
-        if (results.empty()) {
-            time = 0;
-            return UINT32_C(0);
-        } else {
-            time = results.front()["qpg_time"].as<int>();
-            return results.front()["qpg_progress"].as<TYPE_OF_QUESTSTATUS>();
-        }
-    } catch (std::exception &e) {
-        std::cerr<<"exception: "<<e.what()<<" while getting quest progress!"<<std::endl;
+    if (it != quests.end()) {
+        time = it->second.second;
+        return it->second.first;
+    } else {
         time = 0;
-        return UINT32_C(0);
+        return TYPE_OF_QUESTSTATUS(0);
     }
-
-    time = 0;
-    return UINT32_C(0);
 }
 
 void Player::startAction(unsigned short int wait, unsigned short int ani, unsigned short int redoani, unsigned short int sound, unsigned short int redosound) {
@@ -2473,6 +2597,10 @@ uint32_t Player::idleTime() const {
 void Player::sendBook(uint16_t bookID) {
     ServerCommandPointer cmd = std::make_shared<BookTC>(bookID);
     Connection->addCommand(cmd);
+}
+
+bool Player::isNewPlayer() const {
+    return newPlayer;
 }
 
 const std::string &Player::nls(const std::string &german, const std::string &english) const {

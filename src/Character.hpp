@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -155,7 +155,7 @@ public:
         unsigned long int flags[ 4 ];
     };
 
-    TYPE_OF_CHARACTER_ID getId() const;
+    virtual TYPE_OF_CHARACTER_ID getId() const;
     const std::string &getName() const;
     virtual std::string to_string() const = 0;
 
@@ -176,7 +176,7 @@ public:
     short int getActiveLanguage() const;
     void setActiveLanguage(short int l);
 
-    const position &getPosition() const;
+    virtual const position &getPosition() const;
 
     bool getAttackMode() const;
     void setAttackMode(bool attack);
@@ -226,11 +226,16 @@ public:
 
     virtual unsigned short getType() const = 0;
 
-    inline TYPE_OF_RACE_ID getRace() const {
+    virtual void changeRace(TYPE_OF_RACE_ID race) {
+        this->race = race;
+        updateAppearanceForAll(true);
+    }
+
+    virtual TYPE_OF_RACE_ID getRace() const {
         return race;
     }
 
-    inline face_to getFaceTo() const {
+    virtual face_to getFaceTo() const {
         return faceto;
     }
 
@@ -245,11 +250,11 @@ public:
     virtual void changeQualityAt(unsigned char pos, short int amount);
     virtual void increasePoisonValue(short int value);
 
-    inline short int getPoisonValue() const {
+    virtual short int getPoisonValue() const {
         return poisonvalue;
     }
 
-    inline void setPoisonValue(short int value) {
+    virtual void setPoisonValue(short int value) {
         poisonvalue = value;
     }
 
@@ -302,17 +307,17 @@ public:
     inline virtual void changeTarget() {
     }
 
-    inline int getMentalCapacity() const {
+    virtual int getMentalCapacity() const {
         return mental_capacity;
     }
 
-    inline void setMentalCapacity(int value) {
+    virtual void setMentalCapacity(int value) {
         mental_capacity = value;
     }
 
     virtual void increaseMentalCapacity(int value);
 
-    int countItem(TYPE_OF_ITEM_ID itemid) const ;
+    virtual int countItem(TYPE_OF_ITEM_ID itemid) const ;
     // where determines where the items will be counted ("all", "belt", "body", "backpack")
     int countItemAt(const std::string &where, TYPE_OF_ITEM_ID itemid, script_data_exchangemap const *data = nullptr) const;
     virtual int eraseItem(TYPE_OF_ITEM_ID itemid, int count, script_data_exchangemap const *data = nullptr);
@@ -320,15 +325,15 @@ public:
     virtual int increaseAtPos(unsigned char pos, int count);
     virtual int createAtPos(unsigned char pos, TYPE_OF_ITEM_ID newid, int count);
     virtual bool swapAtPos(unsigned char pos, TYPE_OF_ITEM_ID newid, uint16_t newQuality = 0);
-    ScriptItem GetItemAt(unsigned char itempos);
+    virtual ScriptItem GetItemAt(unsigned char itempos);
     virtual Container *GetBackPack() const;
     Container *GetDepot(uint32_t depotid) const;
     std::vector<ScriptItem> getItemList(TYPE_OF_ITEM_ID id) const;
 
     virtual std::string getSkillName(TYPE_OF_SKILL_ID s) const;
-    unsigned short int getSkill(TYPE_OF_SKILL_ID s) const;
-    const skillvalue *getSkillValue(TYPE_OF_SKILL_ID s) const;
-    unsigned short int getMinorSkill(TYPE_OF_SKILL_ID s) const;
+    virtual unsigned short int getSkill(TYPE_OF_SKILL_ID s) const;
+    virtual const skillvalue *getSkillValue(TYPE_OF_SKILL_ID s) const;
+    virtual unsigned short int getMinorSkill(TYPE_OF_SKILL_ID s) const;
 
     void setSkinColor(uint8_t red, uint8_t green, uint8_t blue);
     void getSkinColor(uint8_t &red, uint8_t &green, uint8_t &blue) const;
@@ -343,12 +348,23 @@ public:
         return _appearance;
     }
 
+    bool setBaseAttribute(Character::attributeIndex attribute, Attribute::attribute_t value);
     void setAttribute(Character::attributeIndex attribute, Attribute::attribute_t value);
+    Attribute::attribute_t getBaseAttribute(Character::attributeIndex attribute) const;
     Attribute::attribute_t getAttribute(Character::attributeIndex attribute) const;
+    bool increaseBaseAttribute(Character::attributeIndex attribute, int amount);
     Attribute::attribute_t increaseAttribute(Character::attributeIndex attribute, int amount);
+    bool isBaseAttributeValid(Character::attributeIndex attribute, Attribute::attribute_t value) const;
+    uint16_t getBaseAttributeSum() const;
+    uint16_t getMaxAttributePoints() const;
+    virtual bool saveBaseAttributes();
     virtual void handleAttributeChange(Character::attributeIndex attribute);
-    Attribute::attribute_t increaseAttrib(const std::string &name, int amount);
+    bool isBaseAttribValid(const std::string &name, Attribute::attribute_t value) const;
+    bool setBaseAttrib(const std::string &name, Attribute::attribute_t value);
     void setAttrib(const std::string &name, Attribute::attribute_t value);
+    Attribute::attribute_t getBaseAttrib(const std::string &name);
+    bool increaseBaseAttrib(const std::string &name, int amount);
+    Attribute::attribute_t increaseAttrib(const std::string &name, int amount);
 
     virtual unsigned short int increaseSkill(TYPE_OF_SKILL_ID skill, short int amount);
     virtual unsigned short int increaseMinorSkill(TYPE_OF_SKILL_ID skill, short int amount);
@@ -363,7 +379,7 @@ public:
     bool isInRangeToField(const position &m_pos, unsigned short int distancemetric) const;
     unsigned short int distanceMetricToPosition(const position &m_pos) const;
 
-    std::string alterSpokenMessage(const std::string &message, int languageSkill) const;
+    virtual std::string alterSpokenMessage(const std::string &message, int languageSkill) const;
     int getLanguageSkill(int languageSkillNumber) const;
 
     virtual void talk(talk_type tt, const std::string &message);
@@ -374,7 +390,7 @@ public:
 
     virtual bool move(direction dir, bool active=true);
 
-    bool getNextStepDir(const position &goal, direction &dir) const;
+    virtual bool getNextStepDir(const position &goal, direction &dir) const;
     bool getStepList(const position &goal, std::list<direction> &steps) const;
 
     virtual bool Warp(const position &newPos);
@@ -388,6 +404,7 @@ public:
 
     virtual void sendCharDescription(TYPE_OF_CHARACTER_ID id, const std::string &desc);
 
+    virtual bool isNewPlayer() const;
     virtual bool pageGM(const std::string &ticket);
 
     virtual uint32_t idleTime() const;
@@ -395,10 +412,10 @@ public:
     virtual void sendBook(uint16_t bookID);
 
     void updateAppearanceForAll(bool always);
-    void forceUpdateAppearanceForAll();
+    virtual void forceUpdateAppearanceForAll();
     void updateAppearanceForPlayer(Player *target, bool always);
 
-    void performAnimation(uint8_t animID);
+    virtual void performAnimation(uint8_t animID);
 
     typedef std::map<TYPE_OF_SKILL_ID, skillvalue> SKILLMAP;
 
@@ -465,7 +482,7 @@ public:
     bool weightOK(TYPE_OF_ITEM_ID id, int count, Container *tcont) const;
 
     virtual void turn(direction dir);
-    void turn(const position &posi);
+    virtual void turn(const position &posi);
 
     virtual void receiveText(talk_type tt, const std::string &message, Character *cc);
 

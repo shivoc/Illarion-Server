@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -25,27 +25,55 @@
 #include "netinterface/NetInterface.hpp"
 #include "netinterface/protocol/ClientCommands.hpp"
 
+#include "Statistics.hpp"
 
 void Player::workoutCommands() {
-    if (!canAct()) {
-        return;
+    std::unique_lock<std::mutex> lock(commandMutex);
+    while (!immediateCommands.empty()) {
+	    ClientCommandPointer cmd = immediateCommands.front();
+	    immediateCommands.pop();
+	    lock.unlock();
+	    cmd->performAction(this);
+	    using namespace Statistic;
+	    Statistics::getInstance().logTime("command_incoming_done", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - cmd->getIncomingTime()).count());
+	    lock.lock();
     }
 
-#ifdef _PLAYER_AUTO_SAVE_
-    checkSave();
-#endif
-
-    ClientCommandPointer cmd = Connection->getCommand();
-
-    if (cmd) {
-        cmd->performAction(this);
-    } else if (isAlive()) {
-        if (getAttackMode() && canFight()) {
-            //cp->ltAction->abortAction();
-            World::get()->characterAttacks(this);
-        }
+    while (!queuedCommands.empty() && queuedCommands.front()->getMinAP() <= getActionPoints()) {
+	    ClientCommandPointer cmd = queuedCommands.front();
+	    queuedCommands.pop();
+	    lock.unlock();
+	    cmd->performAction(this);
+	    using namespace Statistic;
+	    Statistics::getInstance().logTime("command_incoming_done_ap", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - cmd->getIncomingTime()).count());
+	    lock.lock();
     }
+}
 
-    cmd.reset();
+void Player::checkFightMode() {
+    if (getAttackMode() && canFight()) {
+	    //cp->ltAction->abortAction();
+	    World::get()->characterAttacks(this);
+    }
+}
+
+void Player::receiveCommand(ClientCommandPointer cmd) {
+	bool notify = false;
+	{
+		std::unique_lock<std::mutex> lock(commandMutex);
+		if (cmd->getMinAP() == 0) {
+			immediateCommands.push(cmd);
+			notify = true;
+		} else {
+			if (getActionPoints() > cmd->getMinAP() && queuedCommands.empty())
+				notify = true;
+			queuedCommands.push(cmd);
+		}
+	}
+
+	if (notify) {
+		World::get()->addPlayerImmediateActionQueue(this);
+		World::get()->scheduler.signalNewPlayerAction();
+	}
 }
 

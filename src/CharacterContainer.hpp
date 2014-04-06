@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -25,8 +25,10 @@
 #include <unordered_map>
 #include <functional>
 #include <boost/lexical_cast.hpp>
+#include "globals.hpp"
 #include "utility.hpp"
 #include "constants.hpp"
+
 
 template <class T>
 class CharacterContainer {
@@ -37,7 +39,12 @@ private:
     typedef std::function<void(pointer)> for_each_type;
     typedef void(T::*for_each_member_type)();
     typedef typename std::unordered_map<TYPE_OF_CHARACTER_ID, pointer> container_type;
+    typedef typename std::multimap<position, TYPE_OF_CHARACTER_ID,PositionComparison> position_to_id_type;
+    position_to_id_type position_to_id;
     container_type container;
+
+    bool getPosition(TYPE_OF_CHARACTER_ID id,position& pos);
+    iterator_range<position_to_id_type::const_iterator> projection_x_axis(const position& pos, int r) const;
 
 public:
     bool empty() const {
@@ -49,20 +56,25 @@ public:
     }
 
     void insert(pointer p) {
-        container.emplace(p->getId(), p);
+        const auto id = p->getId();
+        
+        if (!find(id)) {
+            container.emplace(id, p);
+            position_to_id.insert(std::make_pair(p->getPosition(), id));
+        }
     }
 
     pointer find(const std::string &name) const;
     pointer find(TYPE_OF_CHARACTER_ID id) const;
     pointer find(const position &pos) const;
-    
+    void update(pointer p, const position& newPosition);
     bool erase(TYPE_OF_CHARACTER_ID id);
     void clear() {
         container.clear();
+        position_to_id.clear();
     }
 
     std::vector<pointer> findAllCharactersInRangeOf(const position &pos, int distancemetric) const;
-    std::vector<pointer> findAllCharactersInMaxRangeOf(const position &pos, int distancemetric) const;
     std::vector<pointer> findAllCharactersInScreen(const position &pos) const;
     std::vector<pointer> findAllAliveCharactersInRangeOf(const position &pos, int distancemetric) const;
     std::vector<pointer> findAllAliveCharactersInRangeOfOnSameMap(const position &pos, int distancemetric) const;
@@ -88,180 +100,5 @@ public:
 };
 
 
-template <class T>
-auto CharacterContainer<T>::find(const std::string &text) const -> pointer {
-    try {
-        auto id = boost::lexical_cast<TYPE_OF_CHARACTER_ID>(text);
-        return find(id);
-    } catch (boost::bad_lexical_cast &) {
-        for (const auto &character : container) {
-            if (comparestrings_nocase(character.second->getName(), text)) {
-                return character.second;
-            }
-        }
-    }
-
-    return nullptr;
-}
-
-
-template <class T>
-auto CharacterContainer<T>::find(TYPE_OF_CHARACTER_ID id) const -> pointer {
-    const auto it = container.find(id);
-
-    if (it != container.end()) {
-        return it->second;
-    }
-
-    return nullptr;
-}
-
-
-template <class T>
-auto CharacterContainer<T>::find(const position &pos) const -> pointer {
-    for (const auto &character : container) {
-        if (character.second->getPosition() == pos) {
-            return character.second;
-        }
-    }
-
-    return nullptr;
-}
-
-
-template <class T>
-bool CharacterContainer<T>::erase(TYPE_OF_CHARACTER_ID id) {
-    return container.erase(id) > 0;
-}
-
-
-template <class T>
-auto CharacterContainer<T>::findAllCharactersInRangeOf(const position &pos, int distancemetric) const -> std::vector<pointer> {
-    std::vector<pointer> temp;
-
-    for (const auto &character : container) {
-        const auto &charPos = character.second->getPosition();
-        short int dz = charPos.z - pos.z;
-
-        if ((-RANGEDOWN <= dz) && (dz <= RANGEUP)) {
-            short int dx = charPos.x - pos.x;
-            short int dy = charPos.y - pos.y;
-
-            if ((abs(dx) + abs(dy)) <= distancemetric) {
-                temp.push_back(character.second);
-            }
-        }
-    }
-
-    return temp;
-}
-
-
-template <class T>
-auto CharacterContainer<T>::findAllCharactersInScreen(const position &pos) const -> std::vector<pointer> {
-    std::vector<pointer> temp;
-
-    for (const auto &character : container) {
-        const auto &charPos = character.second->getPosition();
-        short int dz = charPos.z - pos.z;
-
-        if ((-RANGEDOWN <= dz) && (dz <= RANGEUP)) {
-            short int dx = charPos.x - pos.x;
-            short int dy = charPos.y - pos.y;
-
-            if ((abs(dx) + abs(dy)) <= character.second->getScreenRange()) {
-                temp.push_back(character.second);
-            }
-        }
-    }
-
-    return temp;
-}
-
-
-template <class T>
-auto CharacterContainer<T>::findAllCharactersInMaxRangeOf(const position &pos, int distancemetric) const -> std::vector<pointer> {
-    std::vector<pointer> temp;
-
-    for (const auto &character : container) {
-        const auto &charPos = character.second->getPosition();
-        short int dz = charPos.z - pos.z;
-
-        if ((-RANGEDOWN <= dz) && (dz <= RANGEUP)) {
-            short int dx = charPos.x - pos.x;
-            short int dy = charPos.y - pos.y;
-
-            if ((abs(dx) <= distancemetric) && (abs(dy) <=distancemetric)) {
-                temp.push_back(character.second);
-            }
-        }
-    }
-
-    return temp;
-}
-
-
-template <class T>
-auto CharacterContainer<T>::findAllAliveCharactersInRangeOf(const position &pos, int distancemetric) const -> std::vector<pointer> {
-    std::vector<pointer> temp;
-
-    for (const auto &character : container) {
-        const auto &charPos = character.second->getPosition();
-        short int dz = charPos.z - pos.z;
-
-        if ((-RANGEDOWN <= dz) && (dz <= RANGEUP)) {
-            short int dx = charPos.x - pos.x;
-            short int dy = charPos.y - pos.y;
-
-            if (((abs(dx) + abs(dy)) <= distancemetric) ||
-                ((distancemetric == 1) && (abs(dx) == 1) && (abs(dy) == 1))) {       // Allow angle attacks
-                if (character.second->isAlive()) {
-                    temp.push_back(character.second);
-                }
-            }
-        }
-    }
-
-    return temp;
-}
-
-template <class T>
-auto CharacterContainer<T>::findAllAliveCharactersInRangeOfOnSameMap(const position &pos, int distancemetric) const -> std::vector<pointer> {
-    std::vector<pointer> temp;
-
-    for (const auto &character : container) {
-        const auto &charPos = character.second->getPosition();
-
-        if (charPos.z == pos.z) {
-            short int dx = charPos.x - pos.x;
-            short int dy = charPos.y - pos.y;
-
-            if (((abs(dx) + abs(dy)) <= distancemetric) || ((distancemetric == 1) && (abs(dx) == 1) && (abs(dy) == 1))) {          // Allow angle attacks
-                if (character.second->isAlive()) {
-                    temp.push_back(character.second);
-                }
-            }
-        }
-    }
-
-    return temp;
-}
-
-
-template <class T>
-bool CharacterContainer<T>::findAllCharactersWithXInRangeOf(short int startx, short int endx, std::vector<pointer> &ret) const {
-    bool found_one = false;
-
-    for (const auto &character : container) {
-        const auto &charPos = character.second->getPosition();
-
-        if ((charPos.x >= startx) && (charPos.x <= endx)) {
-            ret.push_back(character.second);
-            found_one = true;
-        }
-    }
-
-    return found_one;
-}
 
 #endif

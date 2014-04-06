@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "Container.hpp"
@@ -181,6 +181,7 @@ bool Container::InsertContainer(Item it, Container *cc, TYPE_OF_CONTAINERSLOTS p
         } else {
             items.insert(ITEMMAP::value_type(pos, titem));
             containers.insert(CONTAINERMAP::value_type(pos, cc));
+            World::get()->sendContainerSlotChange(this, pos);
             return true;
         }
     }
@@ -653,7 +654,7 @@ void Container::doAge(bool inventory) {
 
 }
 
-TYPE_OF_CONTAINERSLOTS Container::getSlotCount() {
+TYPE_OF_CONTAINERSLOTS Container::getSlotCount() const {
     return Data::ContainerItems[itemId];
 }
 
@@ -663,20 +664,27 @@ bool Container::isItemStackable(Item item) {
 }
 
 void Container::insertIntoFirstFreeSlot(Item &item) {
+    TYPE_OF_CONTAINERSLOTS freeSlot = getFirstFreeSlot();
     TYPE_OF_CONTAINERSLOTS slotCount = getSlotCount();
-    TYPE_OF_CONTAINERSLOTS i = 0;
 
-    while (i < slotCount && items.find(i) != items.end()) {
-        ++i;
-    }
-
-    if (i < slotCount) {
-        items.insert(ITEMMAP::value_type(i, item));
-        World::get()->sendContainerSlotChange(this, i);
+    if (freeSlot < slotCount) {
+        items.insert(ITEMMAP::value_type(freeSlot, item));
+        World::get()->sendContainerSlotChange(this, freeSlot);
     }
 }
 
 void Container::insertIntoFirstFreeSlot(Item &item, Container *container) {
+    TYPE_OF_CONTAINERSLOTS freeSlot = getFirstFreeSlot();
+    TYPE_OF_CONTAINERSLOTS slotCount = getSlotCount();
+
+    if (freeSlot < slotCount) {
+        items.insert(ITEMMAP::value_type(freeSlot, item));
+        containers.insert(CONTAINERMAP::value_type(freeSlot, container));
+        World::get()->sendContainerSlotChange(this, freeSlot);
+    }
+}
+
+TYPE_OF_CONTAINERSLOTS Container::getFirstFreeSlot() const {
     TYPE_OF_CONTAINERSLOTS slotCount = getSlotCount();
     TYPE_OF_CONTAINERSLOTS i = 0;
 
@@ -684,10 +692,5 @@ void Container::insertIntoFirstFreeSlot(Item &item, Container *container) {
         ++i;
     }
 
-    if (i < slotCount) {
-        items.insert(ITEMMAP::value_type(i, item));
-        containers.insert(CONTAINERMAP::value_type(i, container));
-        World::get()->sendContainerSlotChange(this, i);
-    }
+    return i;
 }
-

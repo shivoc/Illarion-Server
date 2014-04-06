@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -25,7 +25,7 @@
 #include <mutex>
 
 #include "InitialConnection.hpp"
-#include "tvector.hpp"
+#include "thread_safe_vector.hpp"
 
 
 class Player;
@@ -34,9 +34,8 @@ class PlayerManager {
 public:
     static PlayerManager &get();
 
-    void saveAll();
-
     void activate();
+    void stop();
 
     bool threadOK() {
         return threadOk;
@@ -46,7 +45,7 @@ public:
 
     void setLoginLogout(bool val);
 
-    typedef tvector<Player *> TPLAYERVECTOR;
+    typedef thread_safe_vector<Player *> TPLAYERVECTOR;
 
     TPLAYERVECTOR &getLogOutPlayers() {
         return loggedOutPlayers;

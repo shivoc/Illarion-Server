@@ -4,23 +4,23 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #ifndef TUNINGCONSTANTS_HPP
 #define TUNINGCONSTANTS_HPP
 
-#define CLIENT_TIMEOUT 25
+#define CLIENT_TIMEOUT 50
 
 // how many players to process each turn (maximum)
 #define MAXPLAYERSPROCESSED 5
@@ -51,7 +51,7 @@
 #define P_USE_COST 10
 #define NP_USE_COST 10
 
-#define P_LOOK_COST 5
+#define P_LOOK_COST 0
 
 #define P_SAY_COST 3
 #define P_SHOUT_COST 9
@@ -80,5 +80,7 @@
 #define MAXTHROWDISTANCE 10
 #define MAXTHROWWEIGHT 99
 #define MAXDROPDISTANCE 2
+
+const unsigned short NP_MAX_WALK_AGI = 20;
 
 #endif

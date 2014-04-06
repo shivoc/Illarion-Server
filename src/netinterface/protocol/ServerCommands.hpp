@@ -5,16 +5,16 @@
  * This file is part of illarionserver.
  *
  * illarionserver is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * illarionserver is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -35,6 +35,7 @@ class Player;
 typedef std::vector < Item > ITEMVECTOR;
 
 enum ServerCommands {
+    SC_KEEPALIVE_TC = 0x00,
     SC_ID_TC = 0xCA,
     SC_SETCOORDINATE_TC = 0xBD,
     SC_MAPSTRIPE_TC = 0xA1,
@@ -85,7 +86,13 @@ enum ServerCommands {
     SC_CRAFTINGDIALOGUPDATE_TC = 0x55,
     SC_CLOSEDIALOG_TC = 0x5F,
     SC_QUESTPROGRESS_TC = 0x40,
-    SC_ABORTQUEST_TC = 0x41
+    SC_ABORTQUEST_TC = 0x41,
+    SC_AVAILABLEQUESTS_TC = 0x42
+};
+
+class KeepAliveTC : public BasicServerCommand {
+public:
+    KeepAliveTC();
 };
 
 class QuestProgressTC : public BasicServerCommand {
@@ -100,6 +107,11 @@ public:
 class AbortQuestTC : public BasicServerCommand {
 public:
     AbortQuestTC(TYPE_OF_QUEST_ID id);
+};
+
+class AvailableQuestsTC : public BasicServerCommand {
+public:
+    AvailableQuestsTC(const std::vector<position> &availableNow, const std::vector<position> &availableSoon);
 };
 
 class InputDialog;
@@ -326,7 +338,7 @@ public:
 
 class UpdateAttribTC : public BasicServerCommand {
 public:
-    UpdateAttribTC(TYPE_OF_CHARACTER_ID id, const std::string &name, short int value);
+    UpdateAttribTC(TYPE_OF_CHARACTER_ID id, const std::string &name, unsigned short int value);
 };
 
 class UpdateMagicFlagsTC : public BasicServerCommand {

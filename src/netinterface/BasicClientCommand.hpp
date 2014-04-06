@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <iostream>
 #include <memory>
+#include <chrono>
 
 class Player;
 class OverflowException {};
@@ -37,11 +38,14 @@ public:
     * Constructor of a basic command
     * @param defByte the initializing byte of the command
     */
-    BasicClientCommand(unsigned char defByte);
+    BasicClientCommand(unsigned char defByte, uint16_t minAP = 0);
 
     void setHeaderData(uint16_t mlength, uint16_t mcheckSum);
 
     virtual ~BasicClientCommand();
+
+    //! no copy operator for pure virtual types
+    BasicClientCommand &operator=(const BasicClientCommand &) = delete;
 
     /**
      * returns the data ptr for the command message
@@ -104,6 +108,18 @@ public:
         return length;
     }
 
+    inline uint16_t getMinAP() {
+	return minAP;
+    }
+
+    inline std::chrono::steady_clock::time_point getIncomingTime() {
+	    return incomingTime;
+    }
+
+    inline void setReceivedTime() {
+	    incomingTime = std::chrono::steady_clock::now();
+    }
+
 protected:
 
     bool dataOk; /*<true if data is ok, will set to false if a command wants to read more data from the buffer as is in it, or if the checksum isn't the same*/
@@ -113,8 +129,8 @@ protected:
     uint16_t checkSum; /*< the checksum transmitted in the header*/
     uint32_t crc; /*< the checksum of the data*/
 
-    //! no copy operator for pure virtual types
-    BasicClientCommand &operator=(const BasicClientCommand &);
+    uint16_t minAP; /*< number of ap necessary to perform command */
+    std::chrono::steady_clock::time_point incomingTime;
 };
 
 #endif

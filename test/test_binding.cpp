@@ -10,6 +10,7 @@ public:
     MockCharacter() {
 	    setId(42);
     }
+    MOCK_CONST_METHOD0(getId, TYPE_OF_CHARACTER_ID());
     MOCK_CONST_METHOD0(getType, unsigned short());
     MOCK_CONST_METHOD0(to_string, std::string());
     MOCK_CONST_METHOD2(inform, void(const std::string &, informType));
@@ -37,6 +38,7 @@ public:
 };
 
 using ::testing::Return;
+using ::testing::AtLeast;
 using ::testing::_;
 using ::testing::Pointee;
 
@@ -53,7 +55,10 @@ public:
     }
 
     world_bindings() {
+        ON_CALL(player, getId()).WillByDefault(Return(1));
+        EXPECT_CALL(player, getId()).Times(AtLeast(0));
 	    ON_CALL(world, findCharacter(player.getId())).WillByDefault(Return(&player));
+        EXPECT_CALL(world, findCharacter(player.getId())).Times(AtLeast(0));
     }
 };
 

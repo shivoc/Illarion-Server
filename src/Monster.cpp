@@ -4,16 +4,16 @@
 //  This file is part of illarionserver.
 //
 //  illarionserver is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
+//  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  illarionserver is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
+//  GNU Affero General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
+//  You should have received a copy of the GNU Affero General Public License
 //  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -21,13 +21,10 @@
 #include "Random.hpp"
 #include "tuningConstants.hpp"
 #include <iostream>
-#include "data/MonsterTable.hpp"
 #include "script/LuaMonsterScript.hpp"
 #include "World.hpp"
 #include "WaypointList.hpp"
 #include "Config.hpp"
-
-extern MonsterTable *MonsterDescriptions;
 
 uint32_t Monster::counter = 0;
 
@@ -62,7 +59,7 @@ void Monster::setMonsterType(const TYPE_OF_CHARACTER_ID &type) throw(unknownIDEx
 
     MonsterStruct monsterdef;
 
-    if (! MonsterDescriptions->find(type, monsterdef)) {
+    if (! World::get()->getMonsterDefinition(type, monsterdef)) {
         throw unknownIDException();
     }
 
@@ -146,7 +143,7 @@ void Monster::setAlive(bool t) {
 
         MonsterStruct monStruct;
 
-        if (MonsterDescriptions->find(getMonsterType(), monStruct)) {
+        if (World::get()->getMonsterDefinition(getMonsterType(), monStruct)) {
             if (monStruct.script) {
                 monStruct.script->onDeath(this);
             } else {
@@ -162,7 +159,7 @@ bool Monster::attack(Character *target) {
 
     MonsterStruct monStruct;
 
-    if (MonsterDescriptions->find(getMonsterType(), monStruct)) {
+    if (World::get()->getMonsterDefinition(getMonsterType(), monStruct)) {
         if (monStruct.script) {
             monStruct.script->onAttack(this,target);
         } else {
@@ -183,7 +180,7 @@ void Monster::heal() {
 void Monster::receiveText(talk_type tt, const std::string &message, Character *cc) {
     MonsterStruct monStruct;
 
-    if (MonsterDescriptions->find(getMonsterType(), monStruct)) {
+    if (World::get()->getMonsterDefinition(getMonsterType(), monStruct)) {
         if (monStruct.script && monStruct.script->existsEntrypoint("receiveText")) {
             if (this != cc) {
                 monStruct.script->receiveText(this, tt, message, cc);

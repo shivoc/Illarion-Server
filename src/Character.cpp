@@ -5,16 +5,16 @@
  *  This file is part of illarionserver.
  *
  *  illarionserver is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
+ *  it under the terms of the GNU Affero General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
  *  illarionserver is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  GNU Affero General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
+ *  You should have received a copy of the GNU Affero General Public License
  *  along with illarionserver.  If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -770,6 +770,24 @@ uint8_t Character::getBeard() const {
     return _appearance.beardtype;
 }
 
+bool Character::setBaseAttribute(Character::attributeIndex attribute, Attribute::attribute_t value) {
+    auto &attrib = attributes[attribute];
+    auto oldValue = attrib.getValue();
+
+    if (isBaseAttributeValid(attribute, value)) {
+        attrib.setBaseValue(value);
+        auto newValue = attrib.getValue();
+
+        if (newValue != oldValue) {
+            handleAttributeChange(attribute);
+        }
+
+        return true;
+    } else {
+        return false;
+    }
+}
+
 void Character::setAttribute(Character::attributeIndex attribute, Attribute::attribute_t value) {
     auto &attrib = attributes[attribute];
     auto oldValue = attrib.getValue();
@@ -781,8 +799,30 @@ void Character::setAttribute(Character::attributeIndex attribute, Attribute::att
     }
 }
 
+Attribute::attribute_t Character::getBaseAttribute(Character::attributeIndex attribute) const {
+    return attributes[attribute].getBaseValue();
+}
+
 Attribute::attribute_t Character::getAttribute(Character::attributeIndex attribute) const {
     return attributes[attribute].getValue();
+}
+
+bool Character::increaseBaseAttribute(Character::attributeIndex attribute, int amount) {
+    auto &attrib = attributes[attribute];
+    auto oldValue = attrib.getValue();
+    
+    if (isBaseAttributeValid(attribute, attrib.getBaseValue() + amount)) {
+        attrib.increaseBaseValue(amount);
+        auto newValue = attrib.getValue();
+
+        if (newValue != oldValue) {
+            handleAttributeChange(attribute);
+        }
+
+        return true;
+    } else {
+        return false;
+    }
 }
 
 Attribute::attribute_t Character::increaseAttribute(Character::attributeIndex attribute, int amount) {
@@ -798,6 +838,29 @@ Attribute::attribute_t Character::increaseAttribute(Character::attributeIndex at
     return newValue;
 }
 
+bool Character::isBaseAttributeValid(Character::attributeIndex attribute, Attribute::attribute_t value) const {
+    return Data::RaceAttributes.isBaseAttributeInLimits(getRace(), attribute, value);
+}
+
+uint16_t Character::getBaseAttributeSum() const {
+    return attributes[Character::agility].getBaseValue()
+        + attributes[Character::constitution].getBaseValue()
+        + attributes[Character::dexterity].getBaseValue()
+        + attributes[Character::essence].getBaseValue()
+        + attributes[Character::intelligence].getBaseValue()
+        + attributes[Character::perception].getBaseValue()
+        + attributes[Character::strength].getBaseValue()
+        + attributes[Character::willpower].getBaseValue();
+}
+
+uint16_t Character::getMaxAttributePoints() const {
+    return Data::RaceAttributes.getMaxAttributePoints(getRace());
+}
+
+bool Character::saveBaseAttributes() {
+    return false;
+}
+
 void Character::handleAttributeChange(Character::attributeIndex attribute) {
     if (attribute == Character::hitpoints) {
         setAlive(getAttribute(hitpoints) > 0);
@@ -805,53 +868,57 @@ void Character::handleAttributeChange(Character::attributeIndex attribute) {
     }
 }
 
-void Character::setAttrib(const std::string &name, Attribute::attribute_t value) {
-    if (name == "faceto") {
-        turn((direction)value);
-    } else if (name == "racetyp") {
-        race = (TYPE_OF_RACE_ID)value;
-        updateAppearanceForAll(true);
-    } else {
-        try {
-            Character::attributeIndex attribute = attributeMap.at(name);
-            setAttribute(attribute, value);
-        } catch (...) {
-
-        }
+bool Character::isBaseAttribValid(const std::string &name, Attribute::attribute_t value) const {
+    try {
+        Character::attributeIndex attribute = attributeMap.at(name);
+        return isBaseAttributeValid(attribute, value);
+    } catch (...) {
+        return false;
     }
 }
 
+bool Character::setBaseAttrib(const std::string &name, Attribute::attribute_t value) {
+    try {
+        Character::attributeIndex attribute = attributeMap.at(name);
+        return setBaseAttribute(attribute, value);
+    } catch (...) {
+        return false;
+    }
+}
+
+void Character::setAttrib(const std::string &name, Attribute::attribute_t value) {
+    try {
+        Character::attributeIndex attribute = attributeMap.at(name);
+        setAttribute(attribute, value);
+    } catch (...) {
+
+    }
+}
+
+Attribute::attribute_t Character::getBaseAttrib(const std::string &name) {
+    try {
+        Character::attributeIndex attribute = attributeMap.at(name);
+        return getBaseAttribute(attribute);
+    } catch (...) {
+        return 0;
+    }
+}
+
+
+
+bool Character::increaseBaseAttrib(const std::string &name, int amount) {
+    try {
+        Character::attributeIndex attribute = attributeMap.at(name);
+        return increaseBaseAttribute(attribute, amount);
+    } catch (...) {
+        return false;
+    }
+}
+
+
 Attribute::attribute_t Character::increaseAttrib(const std::string &name, int amount) {
-    if (name == "posx") {
-        return pos.x;
-    }
-
-    if (name == "posy") {
-        return pos.y;
-    }
-
-    if (name == "posz") {
-        return pos.z;
-    }
-
-    if (name == "faceto") {
-        return faceto;
-    }
-
-    if (name == "id") {
-        return id;
-    }
-
-    if (name == "racetyp") {
-        return race;
-    }
-
     if (name == "sex") {
         return getAttribute(Character::sex);
-    }
-
-    if (name == "magictype") {
-        return magic.type;
     }
 
     try {
@@ -1002,13 +1069,7 @@ void Character::deleteAllSkills() {
 
 bool Character::isInRange(Character *cc, unsigned short int distancemetric) const {
     if (cc) {
-        short int pz = cc->pos.z - pos.z;
-        short int px = cc->pos.x - pos.x;
-        short int py = cc->pos.y - pos.y;
-
-        if (((abs(px) + abs(py)) <= distancemetric) && (pz==0)) {
-            return true;
-        }
+        return isInRangeToField(cc->pos, distancemetric);
     }
 
     return false;
@@ -1019,11 +1080,11 @@ unsigned short int Character::getScreenRange() const {
 }
 
 bool Character::isInRangeToField(const position &m_pos, unsigned short int distancemetric) const {
-    short int pz = m_pos.z - pos.z;
-    short int px = m_pos.x - pos.x;
-    short int py = m_pos.y - pos.y;
+    short int dz = abs(m_pos.z - pos.z);
+    short int dx = abs(m_pos.x - pos.x);
+    short int dy = abs(m_pos.y - pos.y);
 
-    if (((abs(px) + abs(py)) <= distancemetric) && (pz == 0)) {
+    if (dx <= distancemetric && dy <= distancemetric && dz == 0) {
         return true;
     } else {
         return false;
@@ -1031,76 +1092,19 @@ bool Character::isInRangeToField(const position &m_pos, unsigned short int dista
 }
 
 unsigned short int Character::distanceMetricToPosition(const position &m_pos) const {
-    unsigned short int ret=0xFFFF;
-    short int pz = pos.z - m_pos.z;
-    short int px = pos.x - m_pos.x;
-    short int py = pos.y - m_pos.y;
+    short int dz = abs(pos.z - m_pos.z);
+    short int dx = abs(pos.x - m_pos.x);
+    short int dy = abs(pos.y - m_pos.y);
 
-    if (pz > 0) {
-        ret = pz;
-    } else {
-        ret = 0 - pz;
-    }
-
-    if (px > 0) {
-        if (px > ret) {
-            ret = px;
-        }
-    } else {
-        if ((0 - px) > ret) {
-            ret = 0 - px;
-        }
-    }
-
-    if (py > 0) {
-        if (py > ret) {
-            ret = py;
-        }
-    } else {
-        if ((0 - py) > ret) {
-            ret = 0 - py;
-        }
-    }
-
-    return ret;
+    return std::max(dx, std::max(dy, dz));
 }
 
 unsigned short int Character::distanceMetric(Character *cc) const {
-    unsigned short int ret=0xFFFF;
-
     if (cc) {
-        short int pz = pos.z - cc->pos.z;
-        short int px = pos.x - cc->pos.x;
-        short int py = pos.y - cc->pos.y;
-
-        if (pz > 0) {
-            ret = pz;
-        } else {
-            ret = 0 - pz;
-        }
-
-        if (px > 0) {
-            if (px > ret) {
-                ret = px;
-            }
-        } else {
-            if ((0 - px) > ret) {
-                ret = 0 - px;
-            }
-        }
-
-        if (py > 0) {
-            if (py > ret) {
-                ret = py;
-            }
-        } else {
-            if ((0 - py) > ret) {
-                ret = 0 - py;
-            }
-        }
+        return distanceMetricToPosition(cc->pos);
+    } else {
+        return 0xFFFF;
     }
-
-    return ret;
 }
 
 
@@ -1131,18 +1135,18 @@ int Character::LoadWeight() const {
 
 
 bool Character::weightOK(TYPE_OF_ITEM_ID id, int count, Container *tcont) const {
-    bool ok;
+    if (count < 0) {
+        return true;
+    }
 
     int realweight = LoadWeight();
 
     if (tcont) {
-        ok = (realweight + weightContainer(id, 1, tcont)) <= maxLoadWeight();
+        return (realweight + weightContainer(id, 1, tcont)) <= maxLoadWeight();
     } else {
         const auto &common = Data::CommonItems[id];
-        ok = (realweight + common.Weight * count) <= maxLoadWeight();
+        return (realweight + common.Weight * count) <= maxLoadWeight();
     }
-
-    return ok;
 }
 
 
@@ -1384,18 +1388,7 @@ bool Character::moveToPossible(const Field *field) const {
 
 uint16_t Character::getMovementCost(const Field *sourcefield) const {
     uint16_t walkcost = 0;
-
-    auto tileId = sourcefield->getTileId();
-    const auto &primaryTile = Data::Tiles[tileId];
-    uint16_t tileWalkingCost = primaryTile.walkingCost;
-
-    tileId = sourcefield->getSecondaryTileId();
-    const auto &secondaryTile = Data::Tiles[tileId];
-    uint16_t secondaryWalkingCost = secondaryTile.walkingCost;
-
-    if (secondaryWalkingCost < tileWalkingCost) {
-        tileWalkingCost = secondaryWalkingCost;
-    }
+    uint16_t tileWalkingCost = sourcefield->getMovementCost();
 
     switch (_movement) {
     case walk:
@@ -1411,11 +1404,14 @@ uint16_t Character::getMovementCost(const Field *sourcefield) const {
         break;
     }
 
+    auto agility = getAttribute(Character::agility);
+
     if (getType() != player) {
         walkcost += STANDARD_MONSTER_WALKING_COST;
+        agility = std::min(agility, NP_MAX_WALK_AGI);
     }
 
-    walkcost = (walkcost * P_MOVECOSTFORMULA_walkingCost_MULTIPLIER) / (getAttribute(Character::agility) + P_MOVECOSTFORMULA_agility_ADD);
+    walkcost = (walkcost * P_MOVECOSTFORMULA_walkingCost_MULTIPLIER) / (agility + P_MOVECOSTFORMULA_agility_ADD);
 
     return walkcost;
 }
@@ -1670,6 +1666,10 @@ void Character::performAnimation(uint8_t animID) {
     }
 }
 
+bool Character::isNewPlayer() const {
+    return false;
+}
+
 bool Character::pageGM(const std::string &ticket) {
     //Nothing to do here, overloaded in Player
     return false;
@@ -1684,6 +1684,7 @@ void Character::setName(const std::string &name) {
 }
 
 void Character::setPosition(const position &pos) {
+    _world->moveTo(this, pos);
     this->pos = pos;
 }
 
