@@ -33,6 +33,7 @@ LuaTestSupportScript::LuaTestSupportScript(const std::string &code, const std::s
 
 LuaTestSupportScript::~LuaTestSupportScript() noexcept {}
 
+#if 0
 Item LuaTestSupportScript::item_test(const Item& in) {
         lua_getglobal(_luaState, "item_test");
 	ItemWrapper::instance()->push(_luaState, in);
@@ -81,3 +82,4 @@ position LuaTestSupportScript::position_test(const position& pos) {
 	auto ptr = PositionWrapper::instance()->get(_luaState, -1);
 	return *ptr;
 }
+#endif

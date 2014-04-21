@@ -75,8 +75,8 @@ struct MonsterStruct {
     skilltype skills;
     itemtype items;
     std::shared_ptr<LuaMonsterScript> script;
-    uint16_t minsize;
-    uint16_t maxsize;
+    uint16_t minsize = 0;
+    uint16_t maxsize = 100;
 };
 
 class MonsterTable {

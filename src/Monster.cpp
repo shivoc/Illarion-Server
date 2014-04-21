@@ -57,7 +57,7 @@ void Monster::setMonsterType(const TYPE_OF_CHARACTER_ID &type) throw(unknownIDEx
     deleteAllSkills();
 
 
-    MonsterStruct monsterdef;
+    MonsterStruct monsterdef{};
 
     if (! World::get()->getMonsterDefinition(type, monsterdef)) {
         throw unknownIDException();
