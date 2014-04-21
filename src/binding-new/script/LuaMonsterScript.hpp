@@ -46,7 +46,7 @@ class LuaMonsterScript : public LuaScript {
 		bool enemyNear(Character *Monster, Character *enemy) { return false; }
 		void abortRoute(Character *Monster) { }
 		void onSpawn(Character *Monster) { }
-		bool setTarget(Character *Monster, const std::vector<Player*> &CandidateList, Player *&Target) { return false; }
+		bool setTarget(Character *Monster, const std::vector<Character*> &CandidateList, Character *&Target) { return false; }
 };
 
 #endif

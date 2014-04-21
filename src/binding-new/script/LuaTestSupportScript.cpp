@@ -26,6 +26,8 @@
 #include "binding/ItemWrapper.hpp"
 #include "binding/ScriptItemWrapper.hpp"
 #include "binding/PositionWrapper.hpp"
+#include "World.hpp"
+#include "Monster.hpp"
 
 LuaTestSupportScript::LuaTestSupportScript(const std::string &code, const std::string &scriptname)
     : LuaScript(code, scriptname) {
@@ -33,12 +35,12 @@ LuaTestSupportScript::LuaTestSupportScript(const std::string &code, const std::s
 
 LuaTestSupportScript::~LuaTestSupportScript() noexcept {}
 
-#if 0
-Item LuaTestSupportScript::item_test(const Item& in) {
-        lua_getglobal(_luaState, "item_test");
+template<>
+Item LuaTestSupportScript::test(const Item& in) {
+	lua_getglobal(_luaState, "test");
 	ItemWrapper::instance()->push(_luaState, in);
 
-        int rc = lua_pcall(_luaState, 1, 1, 0);
+	int rc = lua_pcall(_luaState, 1, 1, 0);
 	if (rc != 0) {
 		logCurrentError();
 	}
@@ -46,11 +48,12 @@ Item LuaTestSupportScript::item_test(const Item& in) {
 	return *ItemWrapper::instance()->get(_luaState, -1);
 }
 
-ScriptItem LuaTestSupportScript::scriptitem_test(const ScriptItem& in) {
-        lua_getglobal(_luaState, "scriptitem_test");
+template<>
+ScriptItem LuaTestSupportScript::test(const ScriptItem& in) {
+	lua_getglobal(_luaState, "test");
 	ScriptItemWrapper::instance()->push(_luaState, in);
 
-        int rc = lua_pcall(_luaState, 1, 1, 0);
+	int rc = lua_pcall(_luaState, 1, 1, 0);
 	if (rc != 0) {
 		logCurrentError();
 	}
@@ -58,11 +61,12 @@ ScriptItem LuaTestSupportScript::scriptitem_test(const ScriptItem& in) {
 	return *ScriptItemWrapper::instance()->get(_luaState, -1);
 }
 
-int LuaTestSupportScript::int_test(int arg) {
-        lua_getglobal(_luaState, "int_test");
+template<>
+int LuaTestSupportScript::test(const int& arg) {
+	lua_getglobal(_luaState, "test");
 	lua_pushnumber(_luaState, arg);
 
-        int rc = lua_pcall(_luaState, 1, 1, 0);
+	int rc = lua_pcall(_luaState, 1, 1, 0);
 	if (rc != 0) {
 		logCurrentError();
 	}
@@ -70,11 +74,12 @@ int LuaTestSupportScript::int_test(int arg) {
 	return luaL_checknumber(_luaState, -1);
 }
 
-position LuaTestSupportScript::position_test(const position& pos) {
-        lua_getglobal(_luaState, "position_test");
+template<>
+position LuaTestSupportScript::test(const position& pos) {
+	lua_getglobal(_luaState, "test");
 	PositionWrapper::instance()->push(_luaState, pos);
 
-        int rc = lua_pcall(_luaState, 1, 1, 0);
+	int rc = lua_pcall(_luaState, 1, 1, 0);
 	if (rc != 0) {
 		logCurrentError();
 	}
@@ -82,4 +87,76 @@ position LuaTestSupportScript::position_test(const position& pos) {
 	auto ptr = PositionWrapper::instance()->get(_luaState, -1);
 	return *ptr;
 }
-#endif
+
+template<>
+WeatherStruct LuaTestSupportScript::test(const WeatherStruct&) {
+	// TODO implement
+	return {};
+}
+
+template<>
+bool LuaTestSupportScript::test(Monster * const &) {
+	// TODO implement
+	return false;
+}
+
+template<>
+int LuaTestSupportScript::test(Monster* const&) {
+	// TODO implement
+	return {};
+}
+
+template<>
+std::string LuaTestSupportScript::test(Monster* const&) {
+	// TODO implement
+	return {};
+}
+
+template<>
+bool LuaTestSupportScript::test(Monster* const&, const ScriptItem&) {
+	// TODO implement
+	return {};
+}
+
+template<>
+bool LuaTestSupportScript::test(Monster* const&, Player* const&) {
+	// TODO implement
+	return {};
+}
+
+template<>
+direction LuaTestSupportScript::test(Monster* const&) {
+	// TODO implement
+	return {};
+}
+
+template<>
+unsigned LuaTestSupportScript::test(Monster* const&) {
+	// TODO implement
+	return {};
+}
+
+template<>
+short unsigned LuaTestSupportScript::test(Monster* const&) {
+	// TODO implement
+	return {};
+}
+
+template<>
+short LuaTestSupportScript::test(Monster* const&) {
+	// TODO implement
+	return {};
+}
+
+template<>
+Character::face_to LuaTestSupportScript::test(Monster* const&) {
+	// TODO implement
+	return {};
+}
+
+template<>
+ScriptItem LuaTestSupportScript::test(Monster* const&) {
+	// TODO implement
+	return {};
+}
+

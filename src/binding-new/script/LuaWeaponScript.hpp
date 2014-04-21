@@ -34,6 +34,7 @@ class LuaWeaponScript : public LuaScript {
 		LuaWeaponScript(const LuaWeaponScript&) = delete;
 
 		void onAttack(Character *Attacker, Character *Defender) { }
+		Character *setTarget(Character *Monster, const std::vector<Character *> &CandidateList) { return nullptr; }
 };
 
 #endif

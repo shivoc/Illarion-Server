@@ -36,6 +36,8 @@ class LuaQuestScript : public LuaScript {
 		std::string description(Character *user, TYPE_OF_QUESTSTATUS status) { return {}; }
 		void targets(Character *user, TYPE_OF_QUESTSTATUS status, std::vector<position> &targets) { }
 		TYPE_OF_QUESTSTATUS finalStatus() { return {}; }
+		position start() { return {}; };
+		QuestAvailability available(Character *user, TYPE_OF_QUESTSTATUS status) { return {}; }
 };
 
 #endif
